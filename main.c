@@ -6,7 +6,6 @@
 #include <getopt.h>
 #include <inttypes.h>
 #include <limits.h>
-#include <locale.h>
 #include <stdarg.h>
 #include <stddef.h>
 #include <stdint.h>
@@ -18,81 +17,16 @@
 #include <sys/types.h>
 #include <unistd.h>
 
-/*
- * Force a compilation error if condition is true, but also produce a
- * result (of value 0 and type size_t), so the expression can be used
- * e.g. in a structure initializer (or wherever else comma expressions
- * aren't permitted).
- */
-#define UL_BUILD_BUG_ON_ZERO(e) __extension__(sizeof(struct { int : -!!(e); }))
-
-/* Don't use inline function to avoid '#include "nls.h"' in c.h
- */
 #define errtryhelp(eval)                                                                          \
     __extension__({                                                                               \
         fprintf(                                                                                  \
-            stderr, _("Try '%s --help' for more information.\n"), program_invocation_short_name); \
+            stderr, "Try '%s --help' for more information.\n", program_invocation_short_name); \
         exit(eval);                                                                               \
     })
 
 /* After failed execvp() */
-#define EX_EXEC_FAILED 126 /* Program located, but not usable. */
-#define EX_EXEC_ENOENT 127 /* Could not find program to exec.  */
-#define errexec(name) \
-    err(errno == ENOENT ? EX_EXEC_ENOENT : EX_EXEC_FAILED, _("failed to execute %s"), name)
-
-/*
- * Constant strings for usage() functions. For more info see
- * Documentation/{howto-usage-function.txt,boilerplate.c}
- */
-#define USAGE_HEADER _("\nUsage:\n")
-#define USAGE_OPTIONS _("\nOptions:\n")
-#define USAGE_SEPARATOR "\n"
-#define USAGE_OPTSTR_HELP _("display this help")
-#define USAGE_OPTSTR_VERSION _("display version")
-
-#define USAGE_HELP_OPTIONS(marg_dsc) \
-    "%-" #marg_dsc "s%s\n"           \
-    "%-" #marg_dsc "s%s\n",          \
-        " -h, --help", USAGE_OPTSTR_HELP, " -V, --version", USAGE_OPTSTR_VERSION
-
-/*
- * Darwin or other BSDs may only have MAP_ANON. To get it on Darwin we must
- * define _DARWIN_C_SOURCE before including sys/mman.h. We do this in config.h.
- */
-#if !defined MAP_ANONYMOUS && defined MAP_ANON
-#define MAP_ANONYMOUS (MAP_ANON)
-#endif
-
-#ifdef ENABLE_NLS
-#include <libintl.h>
-/*
- * For NLS support in the public shared libraries we have to specify text
- * domain name to be independent on the main program. For this purpose define
- * UL_TEXTDOMAIN_EXPLICIT before you include nls.h to your shared library code.
- */
-#ifdef UL_TEXTDOMAIN_EXPLICIT
-#define _(Text) dgettext(UL_TEXTDOMAIN_EXPLICIT, Text)
-#else
-#define _(Text) gettext(Text)
-#endif
-#ifdef gettext_noop
-#define N_(String) gettext_noop(String)
-#else
-#define N_(String) (String)
-#endif
-#define P_(Singular, Plural, n) ngettext(Singular, Plural, n)
-#else
-#undef bindtextdomain
-#define bindtextdomain(Domain, Directory) /* empty */
-#undef textdomain
-#define textdomain(Domain) /* empty */
-#define _(Text) (Text)
-#define N_(Text) (Text)
-#define P_(Singular, Plural, n) ((n) == 1 ? (Singular) : (Plural))
-#endif /* ENABLE_NLS */
-
-#include <langinfo.h>
+static int EX_EXEC_FAILED = 126; // Program located, but not usable
+static int EX_EXEC_ENOENT = 127; // Could not find program to exec
 
 static int CLOSE_EXIT_CODE = EXIT_FAILURE;
 static int STRTOXX_EXIT_CODE = EXIT_FAILURE;
@@ -129,9 +63,9 @@ close_stdout(void)
 {
     if (flush_standard_stream(stdout) != 0 && !(errno == EPIPE)) {
         if (errno)
-            warn(_("write error"));
+            warn("write error");
         else
-            warnx(_("write error"));
+            warnx("write error");
         _exit(CLOSE_EXIT_CODE);
     }
 
@@ -230,16 +164,16 @@ static void ioprio_print(int pid, int who)
     int ioprio = ioprio_get(who, pid);
 
     if (ioprio == -1)
-        err(EXIT_FAILURE, _("ioprio_get failed"));
+        err(EXIT_FAILURE, "ioprio_get failed");
     else {
         int ioclass = IOPRIO_PRIO_CLASS(ioprio);
-        const char* name = _("unknown");
+        const char* name = "unknown";
 
         if (ioclass >= 0 && (size_t)ioclass < 4)
             name = to_prio[ioclass];
 
         if (ioclass != IOPRIO_CLASS_IDLE)
-            printf(_("%s: prio %lu\n"), name,
+            printf("%s: prio %lu\n", name,
                 IOPRIO_PRIO_DATA(ioprio));
         else
             printf("%s\n", name);
@@ -252,35 +186,37 @@ static void ioprio_setid(int which, int ioclass, int data, int who)
         IOPRIO_PRIO_VALUE(ioclass, data));
 
     if (rc == -1 && !tolerant)
-        err(EXIT_FAILURE, _("ioprio_set failed"));
+        err(EXIT_FAILURE, "ioprio_set failed");
 }
 
 static void __attribute__((__noreturn__)) usage(void)
 {
     FILE* out = stdout;
-    fputs(USAGE_HEADER, out);
-    fprintf(out, _(" ion [options] -p <pid>...\n"
-                   " ion [options] -P <pgid>...\n"
-                   " ion [options] -u <uid>...\n"
-                   " ion [options] <command>\n"));
+    fputs("\nUsage:\n", out);
+    fprintf(out, " ion [options] -p <pid>...\n"
+                 " ion [options] -P <pgid>...\n"
+                 " ion [options] -u <uid>...\n"
+                 " ion [options] <command>\n");
 
-    fputs(USAGE_SEPARATOR, out);
-    fputs(_("Show or change the I/O-scheduling class and priority of a process.\n"), out);
+    fputs("\n", out);
+    fputs("Show or change the I/O-scheduling class and priority of a process.\n", out);
 
-    fputs(USAGE_OPTIONS, out);
-    fputs(_(" -c, --class <class>    name or number of scheduling class,\n"
-            "                          0: none, 1: realtime, 2: best-effort, 3: idle\n"),
+    fputs("\nOptions:\n", out);
+    fputs(" -c, --class <class>    name or number of scheduling class,\n"
+          "                          0: none, 1: realtime, 2: best-effort, 3: idle\n",
         out);
-    fputs(_(" -n, --classdata <num>  priority (0..7) in the specified scheduling class,\n"
-            "                          only for the realtime and best-effort classes\n"),
+    fputs(" -n, --classdata <num>  priority (0..7) in the specified scheduling class,\n"
+          "                          only for the realtime and best-effort classes\n",
         out);
-    fputs(_(" -p, --pid <pid>...     act on these already running processes\n"), out);
-    fputs(_(" -P, --pgid <pgrp>...   act on already running processes in these groups\n"), out);
-    fputs(_(" -t, --ignore           ignore failures\n"), out);
-    fputs(_(" -u, --uid <uid>...     act on already running processes owned by these users\n"), out);
+    fputs(" -p, --pid <pid>...     act on these already running processes\n", out);
+    fputs(" -P, --pgid <pgrp>...   act on already running processes in these groups\n", out);
+    fputs(" -t, --ignore           ignore failures\n", out);
+    fputs(" -u, --uid <uid>...     act on already running processes owned by these users\n", out);
 
-    fputs(USAGE_SEPARATOR, out);
-    printf(USAGE_HELP_OPTIONS(24));
+    fputs("\n", out);
+
+    printf("%-24s%s\n", " -h, --help", "display this help");
+    printf("%-24s%s\n", " -V, --version", "display version");
 
     exit(EXIT_SUCCESS);
 }
@@ -303,26 +239,23 @@ int main(int argc, char** argv)
         { NULL, 0, NULL, 0 }
     };
 
-    setlocale(LC_ALL, "");
-    bindtextdomain(PACKAGE, "/usr/share/locale");
-    textdomain(PACKAGE);
     close_stdout_atexit();
 
     while ((c = getopt_long(argc, argv, "+n:c:p:P:u:tVh", longopts, NULL)) != EOF)
         switch (c) {
         case 'n':
-            data = strtos32_or_err(optarg, _("invalid class data argument"));
+            data = strtos32_or_err(optarg, "invalid class data argument");
             set |= 1;
             break;
         case 'c':
             if (isdigit(*optarg))
                 ioclass = strtos32_or_err(optarg,
-                    _("invalid class argument"));
+                    "invalid class argument");
             else {
                 ioclass = parse_ioclass(optarg);
                 if (ioclass < 0)
                     errx(EXIT_FAILURE,
-                        _("unknown scheduling class: '%s'"),
+                        "unknown scheduling class: '%s'",
                         optarg);
             }
             set |= 2;
@@ -330,24 +263,24 @@ int main(int argc, char** argv)
         case 'p':
             if (who)
                 errx(EXIT_FAILURE,
-                    _("can handle only one of pid, pgid or uid at once"));
-            invalid_msg = _("invalid PID argument");
+                    "can handle only one of pid, pgid or uid at once");
+            invalid_msg = "invalid PID argument";
             which = strtos32_or_err(optarg, invalid_msg);
             who = IOPRIO_WHO_PROCESS;
             break;
         case 'P':
             if (who)
                 errx(EXIT_FAILURE,
-                    _("can handle only one of pid, pgid or uid at once"));
-            invalid_msg = _("invalid PGID argument");
+                    "can handle only one of pid, pgid or uid at once");
+            invalid_msg = "invalid PGID argument";
             which = strtos32_or_err(optarg, invalid_msg);
             who = IOPRIO_WHO_PGRP;
             break;
         case 'u':
             if (who)
                 errx(EXIT_FAILURE,
-                    _("can handle only one of pid, pgid or uid at once"));
-            invalid_msg = _("invalid UID argument");
+                    "can handle only one of pid, pgid or uid at once");
+            invalid_msg = "invalid UID argument";
             which = strtos32_or_err(optarg, invalid_msg);
             who = IOPRIO_WHO_USER;
             break;
@@ -366,7 +299,7 @@ int main(int argc, char** argv)
     switch (ioclass) {
     case IOPRIO_CLASS_NONE:
         if ((set & 1) && !tolerant)
-            warnx(_("ignoring given class data for none class"));
+            warnx("ignoring given class data for none class");
         data = 0;
         break;
     case IOPRIO_CLASS_RT:
@@ -374,12 +307,12 @@ int main(int argc, char** argv)
         break;
     case IOPRIO_CLASS_IDLE:
         if ((set & 1) && !tolerant)
-            warnx(_("ignoring given class data for idle class"));
+            warnx("ignoring given class data for idle class");
         data = 7;
         break;
     default:
         if (!tolerant)
-            warnx(_("unknown prio class %d"), ioclass);
+            warnx("unknown prio class %d", ioclass);
         break;
     }
 
@@ -414,9 +347,10 @@ int main(int argc, char** argv)
          */
         ioprio_setid(0, ioclass, data, IOPRIO_WHO_PROCESS);
         execvp(argv[optind], &argv[optind]);
-        errexec(argv[optind]);
+        err(errno == ENOENT ? EX_EXEC_ENOENT : EX_EXEC_FAILED, "failed to execute %s", argv[optind]);
+
     } else {
-        warnx(_("bad usage"));
+        warnx("bad usage");
         errtryhelp(EXIT_FAILURE);
     }
 
