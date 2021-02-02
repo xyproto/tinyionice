@@ -10,6 +10,6 @@ Builds with [cxx](https://github.com/xyproto/cxx):
 
     cxx
 
-This fork mainly consists of a single `main.c` file with 350 lines of code.
+The localization is removed, and support for older systems is removed, but other than that it's a fully featured version of `ionice` in just 350 lines of C.
 
 Version: 1.0.0
