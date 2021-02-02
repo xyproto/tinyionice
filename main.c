@@ -17,20 +17,6 @@
 #include <sys/types.h>
 #include <unistd.h>
 
-#define errtryhelp(eval)                                                                          \
-    __extension__({                                                                               \
-        fprintf(                                                                                  \
-            stderr, "Try '%s --help' for more information.\n", program_invocation_short_name); \
-        exit(eval);                                                                               \
-    })
-
-/* After failed execvp() */
-static int EX_EXEC_FAILED = 126; // Program located, but not usable
-static int EX_EXEC_ENOENT = 127; // Could not find program to exec
-
-static int CLOSE_EXIT_CODE = EXIT_FAILURE;
-static int STRTOXX_EXIT_CODE = EXIT_FAILURE;
-
 static inline int
 flush_standard_stream(FILE* stream)
 {
@@ -66,11 +52,11 @@ close_stdout(void)
             warn("write error");
         else
             warnx("write error");
-        _exit(CLOSE_EXIT_CODE);
+        _exit(EXIT_FAILURE);
     }
 
     if (flush_standard_stream(stderr) != 0)
-        _exit(CLOSE_EXIT_CODE);
+        _exit(EXIT_FAILURE);
 }
 
 static inline void
@@ -95,9 +81,8 @@ int64_t strtos64_or_err(const char* str, const char* errmesg)
     return num;
 err:
     if (errno == ERANGE)
-        err(STRTOXX_EXIT_CODE, "%s: '%s'", errmesg, str);
-
-    errx(STRTOXX_EXIT_CODE, "%s: '%s'", errmesg, str);
+        err(EXIT_FAILURE, "%s: '%s'", errmesg, str);
+    errx(EXIT_FAILURE, "%s: '%s'", errmesg, str);
 }
 
 int32_t strtos32_or_err(const char* str, const char* errmesg)
@@ -105,7 +90,7 @@ int32_t strtos32_or_err(const char* str, const char* errmesg)
     int64_t num = strtos64_or_err(str, errmesg);
     if (num < INT32_MIN || num > INT32_MAX) {
         errno = ERANGE;
-        err(STRTOXX_EXIT_CODE, "%s: '%s'", errmesg, str);
+        err(EXIT_FAILURE, "%s: '%s'", errmesg, str);
     }
     return (int32_t)num;
 }
@@ -135,12 +120,28 @@ enum {
     IOPRIO_WHO_USER,
 };
 
-#define IOPRIO_CLASS_SHIFT (13)
-#define IOPRIO_PRIO_MASK ((1UL << IOPRIO_CLASS_SHIFT) - 1)
+// #define IOPRIO_CLASS_SHIFT 13
+static int IOPRIO_CLASS_SHIFT = 13;
 
-#define IOPRIO_PRIO_CLASS(mask) ((mask) >> IOPRIO_CLASS_SHIFT)
-#define IOPRIO_PRIO_DATA(mask) ((mask)&IOPRIO_PRIO_MASK)
-#define IOPRIO_PRIO_VALUE(class, data) (((class) << IOPRIO_CLASS_SHIFT) | data)
+// #define IOPRIO_PRIO_MASK ((1UL << IOPRIO_CLASS_SHIFT) - 1)
+static inline int IOPRIO_PRIO_MASK() {
+    return (1UL << IOPRIO_CLASS_SHIFT) - 1;
+}
+
+// #define IOPRIO_PRIO_CLASS(mask) ((mask) >> IOPRIO_CLASS_SHIFT)
+static inline int IOPRIO_PRIO_CLASS(int mask) {
+    return mask >> IOPRIO_CLASS_SHIFT;
+}
+
+// #define IOPRIO_PRIO_DATA(mask) ((mask)&IOPRIO_PRIO_MASK)
+static inline int IOPRIO_PRIO_DATA(int mask) {
+    return mask & IOPRIO_PRIO_MASK();
+}
+
+// #define IOPRIO_PRIO_VALUE(class, data) (((class) << IOPRIO_CLASS_SHIFT) | data)
+static inline int IOPRIO_PRIO_VALUE(int class, int data) {
+    return (((class) << IOPRIO_CLASS_SHIFT) | data);
+}
 
 static const char* to_prio[] = {
     [IOPRIO_CLASS_NONE] = "none",
@@ -293,7 +294,9 @@ int main(int argc, char** argv)
         case 'h':
             usage();
         default:
-            errtryhelp(EXIT_FAILURE);
+            fprintf(
+                stderr, "Try '%s --help' for more information.\n", program_invocation_short_name);
+            exit(EXIT_FAILURE);
         }
 
     switch (ioclass) {
@@ -347,11 +350,16 @@ int main(int argc, char** argv)
          */
         ioprio_setid(0, ioclass, data, IOPRIO_WHO_PROCESS);
         execvp(argv[optind], &argv[optind]);
-        err(errno == ENOENT ? EX_EXEC_ENOENT : EX_EXEC_FAILED, "failed to execute %s", argv[optind]);
 
+        static int EX_EXEC_FAILED = 126; // Program located, but not usable
+        static int EX_EXEC_ENOENT = 127; // Could not find program to exec
+
+        err(errno == ENOENT ? EX_EXEC_ENOENT : EX_EXEC_FAILED, "failed to execute %s", argv[optind]);
     } else {
         warnx("bad usage");
-        errtryhelp(EXIT_FAILURE);
+        fprintf(
+            stderr, "Try '%s --help' for more information.\n", program_invocation_short_name);
+        exit(EXIT_FAILURE);
     }
 
     return EXIT_SUCCESS;
