@@ -1,20 +1,12 @@
-#include <assert.h>
 #include <ctype.h>
-#include <dirent.h>
 #include <err.h>
 #include <errno.h>
 #include <getopt.h>
 #include <inttypes.h>
-#include <limits.h>
-#include <stdarg.h>
-#include <stddef.h>
-#include <stdint.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
-#include <sys/stat.h>
 #include <sys/syscall.h>
-#include <sys/types.h>
 #include <unistd.h>
 
 static inline int flush_standard_stream(FILE* stream)
