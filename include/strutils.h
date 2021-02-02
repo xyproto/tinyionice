@@ -146,14 +146,6 @@ static inline int strdup_between_offsets(void* stru_dst, void* stru_src, size_t 
 #define strdup_between_structs(_dst, _src, _m) \
     strdup_between_offsets((void*)_dst, (void*)_src, offsetof(__typeof__(*(_src)), _m))
 
-/* Options for size_to_human_string() */
-enum {
-    SIZE_SUFFIX_1LETTER = 0,
-    SIZE_SUFFIX_3LETTER = (1 << 0),
-    SIZE_SUFFIX_SPACE = (1 << 1),
-    SIZE_DECIMAL_2DIGITS = (1 << 2)
-};
-
 /*
  * Match string beginning.
  */

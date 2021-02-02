@@ -5,6 +5,13 @@
 #include <stdlib.h>
 #include <sys/syscall.h>
 #include <unistd.h>
+#include <assert.h>
+#include <ctype.h>
+#include <errno.h>
+#include <inttypes.h>
+#include <stdio.h>
+#include <string.h>
+#include <sys/stat.h>
 
 #define HAVE_FSYNC
 #define HAVE_PROGRAM_INVOCATION_SHORT_NAME "ion"
@@ -17,6 +24,41 @@
 #include "closestream.h"
 #include "nls.h"
 #include "strutils.h"
+#include "bitops.h"
+#include "pathnames.h"
+
+static int STRTOXX_EXIT_CODE = EXIT_FAILURE;
+
+int64_t strtos64_or_err(const char* str, const char* errmesg)
+{
+    int64_t num;
+    char* end = NULL;
+
+    errno = 0;
+    if (str == NULL || *str == '\0')
+        goto err;
+    num = strtoimax(str, &end, 10);
+
+    if (errno || str == end || (end && *end))
+        goto err;
+
+    return num;
+err:
+    if (errno == ERANGE)
+        err(STRTOXX_EXIT_CODE, "%s: '%s'", errmesg, str);
+
+    errx(STRTOXX_EXIT_CODE, "%s: '%s'", errmesg, str);
+}
+
+int32_t strtos32_or_err(const char* str, const char* errmesg)
+{
+    int64_t num = strtos64_or_err(str, errmesg);
+    if (num < INT32_MIN || num > INT32_MAX) {
+        errno = ERANGE;
+        err(STRTOXX_EXIT_CODE, "%s: '%s'", errmesg, str);
+    }
+    return num;
+}
 
 static int tolerant;
 
