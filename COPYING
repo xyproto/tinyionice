@@ -1,3 +1,30 @@
+The original source code of "ionice" contains these comments:
+
+> Copyright (C) 2004 Jens Axboe <jens@axboe.dk>
+> Released under the terms of the GNU General Public License version 2
+
+And:
+
+> Copyright (C) 2010 Karel Zak <kzak@redhat.com>
+> Copyright (C) 2010 Davidlohr Bueso <dave@gnu.org>
+> No copyright is claimed.  This code is in the public domain; do with
+> it what you wish.
+
+I want to relicense this code under GPL2.
+
+And also:
+
+> No copyright is claimed.  This code is in the public domain; do with
+> it what you wish. Written by Karel Zak <kzak@redhat.com>
+
+I also want to relicense this code under GPL2.
+
+All changes to the code from 2021 and beyond are:
+Copyright (C) 2021 Alexander F. Rødseth <xyproto@archlinux.org>
+Released under the terms of the GNU General Public License version 2
+
+And here's the full text of GPL2:
+
                     GNU GENERAL PUBLIC LICENSE
                        Version 2, June 1991
 
