@@ -1,0 +1,6 @@
+ion
+*.o
+*.bak
+*.tmp
+*.swp
+*~
