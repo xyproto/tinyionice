@@ -18,10 +18,10 @@
 #define HAVE_PROGRAM_INVOCATION_SHORT_NAME "ion"
 
 #include "c.h"
-//#include "closestream.h"
 #include "nls.h"
 
-#define CLOSE_EXIT_CODE EXIT_FAILURE
+static int CLOSE_EXIT_CODE = EXIT_FAILURE;
+static int STRTOXX_EXIT_CODE = EXIT_FAILURE;
 
 static inline int
 flush_standard_stream(FILE* stream)
@@ -75,17 +75,6 @@ close_stdout_atexit(void)
     atexit(close_stdout);
 #endif
 }
-
-/* initialize a custom exit code for all *_or_err functions */
-extern void strutils_set_exitcode(int exit_code);
-
-extern int parse_size(const char* str, uintmax_t* res, int* power);
-extern int strtosize(const char* str, uintmax_t* res);
-extern uintmax_t strtosize_or_err(const char* str, const char* errmesg);
-
-extern int32_t strtos32_or_err(const char* str, const char* errmesg);
-
-extern int64_t strtos64_or_err(const char* str, const char* errmesg);
 
 /* caller guarantees n > 0 */
 static inline void xstrncpy(char* dest, const char* src, size_t n)
@@ -321,7 +310,6 @@ static inline void strrem(char* s, int rem)
     *p = '\0';
 }
 
-static int STRTOXX_EXIT_CODE = EXIT_FAILURE;
 
 int64_t strtos64_or_err(const char* str, const char* errmesg)
 {

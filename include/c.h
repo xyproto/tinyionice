@@ -38,8 +38,7 @@
  */
 #ifndef __GNUC_PREREQ
 #if defined __GNUC__ && defined __GNUC_MINOR__
-#define __GNUC_PREREQ(maj, min) \
-    ((__GNUC__ << 16) + __GNUC_MINOR__ >= ((maj) << 16) + (min))
+#define __GNUC_PREREQ(maj, min) ((__GNUC__ << 16) + __GNUC_MINOR__ >= ((maj) << 16) + (min))
 #else
 #define __GNUC_PREREQ(maj, min) 0
 #endif
@@ -48,13 +47,14 @@
 #ifdef __GNUC__
 
 /* &a[0] degrades to a pointer: a different type from an array */
-#define __must_be_array(a) \
+#define __must_be_array(a)                                                                        \
     UL_BUILD_BUG_ON_ZERO(__builtin_types_compatible_p(__typeof__(a), __typeof__(&a[0])))
 
-#define ignore_result(x) __extension__({                     \
-    __typeof__(x) __dummy __attribute__((__unused__)) = (x); \
-    (void)__dummy;                                           \
-})
+#define ignore_result(x)                                                                          \
+    __extension__({                                                                               \
+        __typeof__(x) __dummy __attribute__((__unused__)) = (x);                                  \
+        (void)__dummy;                                                                            \
+    })
 
 #else /* !__GNUC__ */
 #define __must_be_array(a) 0
@@ -125,27 +125,33 @@
 #endif
 
 #ifndef min
-#define min(x, y) __extension__({		\
-    __typeof__(x) _min1 = (x);		\
-    __typeof__(y) _min2 = (y);		\
-    (void) (&_min1 == &_min2);		\
-    _min1 < _min2 ? _min1 : _min2; })
+#define min(x, y)                                                                                 \
+    __extension__({                                                                               \
+        __typeof__(x) _min1 = (x);                                                                \
+        __typeof__(y) _min2 = (y);                                                                \
+        (void)(&_min1 == &_min2);                                                                 \
+        _min1 < _min2 ? _min1 : _min2;                                                            \
+    })
 #endif
 
 #ifndef max
-#define max(x, y) __extension__({		\
-    __typeof__(x) _max1 = (x);		\
-    __typeof__(y) _max2 = (y);		\
-    (void) (&_max1 == &_max2);		\
-    _max1 > _max2 ? _max1 : _max2; })
+#define max(x, y)                                                                                 \
+    __extension__({                                                                               \
+        __typeof__(x) _max1 = (x);                                                                \
+        __typeof__(y) _max2 = (y);                                                                \
+        (void)(&_max1 == &_max2);                                                                 \
+        _max1 > _max2 ? _max1 : _max2;                                                            \
+    })
 #endif
 
 #ifndef cmp_numbers
-#define cmp_numbers(x, y) __extension__({	\
-    __typeof__(x) _a = (x);			\
-    __typeof__(y) _b = (y);			\
-    (void) (&_a == &_b);			\
-    _a == _b ? 0 : _a > _b ? 1 : -1; })
+#define cmp_numbers(x, y)                                                                         \
+    __extension__({                                                                               \
+        __typeof__(x) _a = (x);                                                                   \
+        __typeof__(y) _b = (y);                                                                   \
+        (void)(&_a == &_b);                                                                       \
+        _a == _b ? 0 : _a > _b ? 1 : -1;                                                          \
+    })
 #endif
 
 #ifndef offsetof
@@ -159,9 +165,11 @@
  * @member:	the name of the member within the struct.
  */
 #ifndef container_of
-#define container_of(ptr, type, member) __extension__({	\
-    const __typeof__( ((type *)0)->member ) *__mptr = (ptr); \
-    (type *)( (char *)__mptr - offsetof(type,member) ); })
+#define container_of(ptr, type, member)                                                           \
+    __extension__({                                                                               \
+        const __typeof__(((type*)0)->member)* __mptr = (ptr);                                     \
+        (type*)((char*)__mptr - offsetof(type, member));                                          \
+    })
 #endif
 
 #ifndef HAVE_PROGRAM_INVOCATION_SHORT_NAME
@@ -170,15 +178,12 @@ extern char* __progname;
 #define program_invocation_short_name __progname
 #else
 #ifdef HAVE_GETEXECNAME
-#define program_invocation_short_name \
-    prog_inv_sh_nm_from_file(getexecname(), 0)
+#define program_invocation_short_name prog_inv_sh_nm_from_file(getexecname(), 0)
 #else
-#define program_invocation_short_name \
-    prog_inv_sh_nm_from_file(__FILE__, 1)
+#define program_invocation_short_name prog_inv_sh_nm_from_file(__FILE__, 1)
 #endif
 static char prog_inv_sh_nm_buf[256];
-static inline char*
-prog_inv_sh_nm_from_file(char* f, char stripext)
+static inline char* prog_inv_sh_nm_from_file(char* f, char stripext)
 {
     char* t;
 
@@ -199,8 +204,7 @@ prog_inv_sh_nm_from_file(char* f, char stripext)
 #endif
 
 #ifndef HAVE_ERR_H
-static inline void
-errmsg(char doexit, int excode, char adderr, const char* fmt, ...)
+static inline void errmsg(char doexit, int excode, char adderr, const char* fmt, ...)
 {
     fprintf(stderr, "%s: ", program_invocation_short_name);
     if (fmt != NULL) {
@@ -237,17 +241,18 @@ errmsg(char doexit, int excode, char adderr, const char* fmt, ...)
 
 /* Don't use inline function to avoid '#include "nls.h"' in c.h
  */
-#define errtryhelp(eval) __extension__({                          \
-    fprintf(stderr, _("Try '%s --help' for more information.\n"), \
-        program_invocation_short_name);                           \
-    exit(eval);                                                   \
-})
+#define errtryhelp(eval)                                                                          \
+    __extension__({                                                                               \
+        fprintf(                                                                                  \
+            stderr, _("Try '%s --help' for more information.\n"), program_invocation_short_name); \
+        exit(eval);                                                                               \
+    })
 
 /* After failed execvp() */
 #define EX_EXEC_FAILED 126 /* Program located, but not usable. */
 #define EX_EXEC_ENOENT 127 /* Could not find program to exec.  */
-#define errexec(name) err(errno == ENOENT ? EX_EXEC_ENOENT : EX_EXEC_FAILED, \
-    _("failed to execute %s"), name)
+#define errexec(name)                                                                             \
+    err(errno == ENOENT ? EX_EXEC_ENOENT : EX_EXEC_FAILED, _("failed to execute %s"), name)
 
 static inline __attribute__((const)) int is_power_of_2(unsigned long num)
 {
@@ -258,13 +263,11 @@ static inline __attribute__((const)) int is_power_of_2(unsigned long num)
 typedef int64_t loff_t;
 #endif
 
-#if !defined(HAVE_DIRFD) && (!defined(HAVE_DECL_DIRFD) || HAVE_DECL_DIRFD == 0) && defined(HAVE_DIR_DD_FD)
+#if !defined(HAVE_DIRFD) && (!defined(HAVE_DECL_DIRFD) || HAVE_DECL_DIRFD == 0)                   \
+    && defined(HAVE_DIR_DD_FD)
 #include <dirent.h>
 #include <sys/types.h>
-static inline int dirfd(DIR* d)
-{
-    return d->dd_fd;
-}
+static inline int dirfd(DIR* d) { return d->dd_fd; }
 #endif
 
 /*
@@ -326,10 +329,7 @@ static inline size_t get_hostname_max(void)
 static inline int xusleep(useconds_t usec)
 {
 #ifdef HAVE_NANOSLEEP
-    struct timespec waittime = {
-        .tv_sec = usec / 1000000L,
-        .tv_nsec = (usec % 1000000L) * 1000
-    };
+    struct timespec waittime = { .tv_sec = usec / 1000000L, .tv_nsec = (usec % 1000000L) * 1000 };
     return nanosleep(&waittime, NULL);
 #elif defined(HAVE_USLEEP)
     return usleep(usec);
@@ -353,23 +353,24 @@ static inline int xusleep(useconds_t usec)
 #define USAGE_OPTSTR_HELP _("display this help")
 #define USAGE_OPTSTR_VERSION _("display version")
 
-#define USAGE_HELP_OPTIONS(marg_dsc) \
-    "%-" #marg_dsc "s%s\n"           \
-    "%-" #marg_dsc "s%s\n",          \
+#define USAGE_HELP_OPTIONS(marg_dsc)                                                              \
+    "%-" #marg_dsc "s%s\n"                                                                        \
+    "%-" #marg_dsc "s%s\n",                                                                       \
         " -h, --help", USAGE_OPTSTR_HELP, " -V, --version", USAGE_OPTSTR_VERSION
 
 #define USAGE_ARG_SEPARATOR "\n"
-#define USAGE_ARG_SIZE(_name)                                            \
-    _(" %s arguments may be followed by the suffixes for\n"              \
-      "   GiB, TiB, PiB, EiB, ZiB, and YiB (the \"iB\" is optional)\n"), \
+#define USAGE_ARG_SIZE(_name)                                                                     \
+    _(" %s arguments may be followed by the suffixes for\n"                                       \
+      "   GiB, TiB, PiB, EiB, ZiB, and YiB (the \"iB\" is optional)\n"),                          \
         _name
 
 #define ION_VERSION _("%s 1.0.0\n"), program_invocation_short_name
 
-#define print_version(eval) __extension__({ \
-    printf(ION_VERSION);                    \
-    exit(eval);                             \
-})
+#define print_version(eval)                                                                       \
+    __extension__({                                                                               \
+        printf(ION_VERSION);                                                                      \
+        exit(eval);                                                                               \
+    })
 
 /*
  * seek stuff
@@ -396,8 +397,11 @@ static inline int xusleep(useconds_t usec)
  * inlining the function because inlining currently breaks the blacklisting
  * mechanism of AddressSanitizer.
  */
-#if __has_feature(address_sanitizer) && __has_attribute(no_sanitize_memory) && __has_attribute(no_sanitize_address)
-#define UL_ASAN_BLACKLIST __attribute__((noinline)) __attribute__((no_sanitize_memory)) __attribute__((no_sanitize_address))
+#if __has_feature(address_sanitizer) && __has_attribute(no_sanitize_memory)                       \
+    && __has_attribute(no_sanitize_address)
+#define UL_ASAN_BLACKLIST                                                                         \
+    __attribute__((noinline)) __attribute__((no_sanitize_memory))                                 \
+        __attribute__((no_sanitize_address))
 #else
 #define UL_ASAN_BLACKLIST /* nothing */
 #endif
