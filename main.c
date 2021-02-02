@@ -15,40 +15,7 @@
 #include <stdarg.h>
 #include <stddef.h>
 #include <inttypes.h>
-
-#define HAVE_PROGRAM_INVOCATION_SHORT_NAME "ion"
-
-/*
- * Fundamental C definitions.
- */
-
-#ifdef HAVE_ERR_H
 #include <err.h>
-#endif
-
-#ifdef HAVE_SYS_SYSMACROS_H
-#include <sys/sysmacros.h> /* for major, minor */
-#endif
-
-#ifndef LOGIN_NAME_MAX
-#define LOGIN_NAME_MAX 256
-#endif
-
-#ifndef NAME_MAX
-#define NAME_MAX PATH_MAX
-#endif
-
-/*
- * __GNUC_PREREQ is deprecated in favour of __has_attribute() and
- * __has_feature(). The __has macros are supported by clang and gcc>=5.
- */
-#ifndef __GNUC_PREREQ
-#if defined __GNUC__ && defined __GNUC_MINOR__
-#define __GNUC_PREREQ(maj, min) ((__GNUC__ << 16) + __GNUC_MINOR__ >= ((maj) << 16) + (min))
-#else
-#define __GNUC_PREREQ(maj, min) 0
-#endif
-#endif
 
 #ifdef __GNUC__
 
@@ -56,54 +23,10 @@
 #define __must_be_array(a) \
     UL_BUILD_BUG_ON_ZERO(__builtin_types_compatible_p(__typeof__(a), __typeof__(&a[0])))
 
-#define ignore_result(x)                                         \
-    __extension__({                                              \
-        __typeof__(x) __dummy __attribute__((__unused__)) = (x); \
-        (void)__dummy;                                           \
-    })
-
 #else /* !__GNUC__ */
 #define __must_be_array(a) 0
 #define __attribute__(_arg_)
-#define ignore_result(x) ((void)(x))
 #endif /* !__GNUC__ */
-
-/*
- * It evaluates to 1 if the attribute/feature is supported by the current
- * compilation target. Fallback for old compilers.
- */
-#ifndef __has_attribute
-#define __has_attribute(x) 0
-#endif
-
-#ifndef __has_feature
-#define __has_feature(x) 0
-#endif
-
-/*
- * Function attributes
- */
-#ifndef __ul_alloc_size
-#if (__has_attribute(alloc_size) && __has_attribute(warn_unused_result)) || __GNUC_PREREQ(4, 3)
-#define __ul_alloc_size(s) __attribute__((alloc_size(s), warn_unused_result))
-#else
-#define __ul_alloc_size(s)
-#endif
-#endif
-
-#ifndef __ul_calloc_size
-#if (__has_attribute(alloc_size) && __has_attribute(warn_unused_result)) || __GNUC_PREREQ(4, 3)
-#define __ul_calloc_size(n, s) __attribute__((alloc_size(n, s), warn_unused_result))
-#else
-#define __ul_calloc_size(n, s)
-#endif
-#endif
-
-#if __has_attribute(returns_nonnull) || __GNUC_PREREQ(4, 9)
-#define __ul_returns_nonnull __attribute__((returns_nonnull))
-#else
-#define __ul_returns_nonnull
-#endif
 
 /*
  * Force a compilation error if condition is true, but also produce a
@@ -114,106 +37,7 @@
 #define UL_BUILD_BUG_ON_ZERO(e) __extension__(sizeof(struct { int : -!!(e); }))
 #define BUILD_BUG_ON_NULL(e) ((void*)sizeof(struct { int : -!!(e); }))
 
-#ifndef ARRAY_SIZE
 #define ARRAY_SIZE(arr) (sizeof(arr) / sizeof((arr)[0]) + __must_be_array(arr))
-#endif
-
-#ifndef PATH_MAX
-#define PATH_MAX 4096
-#endif
-
-#ifndef TRUE
-#define TRUE 1
-#endif
-
-#ifndef FALSE
-#define FALSE 0
-#endif
-
-#ifndef min
-#define min(x, y)                      \
-    __extension__({                    \
-        __typeof__(x) _min1 = (x);     \
-        __typeof__(y) _min2 = (y);     \
-        (void)(&_min1 == &_min2);      \
-        _min1 < _min2 ? _min1 : _min2; \
-    })
-#endif
-
-#ifndef max
-#define max(x, y)                      \
-    __extension__({                    \
-        __typeof__(x) _max1 = (x);     \
-        __typeof__(y) _max2 = (y);     \
-        (void)(&_max1 == &_max2);      \
-        _max1 > _max2 ? _max1 : _max2; \
-    })
-#endif
-
-#ifndef cmp_numbers
-#define cmp_numbers(x, y)            \
-    __extension__({                  \
-        __typeof__(x) _a = (x);      \
-        __typeof__(y) _b = (y);      \
-        (void)(&_a == &_b);          \
-        _a == _b ? 0 : _a > _b ? 1   \
-                               : -1; \
-    })
-#endif
-
-#ifndef offsetof
-#define offsetof(TYPE, MEMBER) ((size_t) & ((TYPE*)0)->MEMBER)
-#endif
-
-/*
- * container_of - cast a member of a structure out to the containing structure
- * @ptr:	the pointer to the member.
- * @type:	the type of the container struct this is embedded in.
- * @member:	the name of the member within the struct.
- */
-#ifndef container_of
-#define container_of(ptr, type, member)                       \
-    __extension__({                                           \
-        const __typeof__(((type*)0)->member)* __mptr = (ptr); \
-        (type*)((char*)__mptr - offsetof(type, member));      \
-    })
-#endif
-
-#ifndef HAVE_ERR_H
-static inline void errmsg(char doexit, int excode, char adderr, const char* fmt, ...)
-{
-    fprintf(stderr, "%s: ", program_invocation_short_name);
-    if (fmt != NULL) {
-        va_list argp;
-        va_start(argp, fmt);
-        vfprintf(stderr, fmt, argp);
-        va_end(argp);
-        if (adderr)
-            fprintf(stderr, ": ");
-    }
-    if (adderr)
-        fprintf(stderr, "%m");
-    fprintf(stderr, "\n");
-    if (doexit)
-        exit(excode);
-}
-
-#ifndef HAVE_ERR
-#define err(E, FMT...) errmsg(1, E, 1, FMT)
-#endif
-
-#ifndef HAVE_ERRX
-#define errx(E, FMT...) errmsg(1, E, 0, FMT)
-#endif
-
-#ifndef HAVE_WARN
-#define warn(FMT...) errmsg(0, 0, 1, FMT)
-#endif
-
-#ifndef HAVE_WARNX
-#define warnx(FMT...) errmsg(0, 0, 0, FMT)
-#endif
-#endif /* !HAVE_ERR_H */
 
 /* Don't use inline function to avoid '#include "nls.h"' in c.h
  */
@@ -229,15 +53,6 @@ static inline void errmsg(char doexit, int excode, char adderr, const char* fmt,
 #define EX_EXEC_ENOENT 127 /* Could not find program to exec.  */
 #define errexec(name) \
     err(errno == ENOENT ? EX_EXEC_ENOENT : EX_EXEC_FAILED, _("failed to execute %s"), name)
-
-static inline __attribute__((const)) int is_power_of_2(unsigned long num)
-{
-    return (num != 0 && ((num & (num - 1)) == 0));
-}
-
-#ifndef HAVE_LOFF_T
-typedef int64_t loff_t;
-#endif
 
 #if !defined(HAVE_DIRFD) && (!defined(HAVE_DECL_DIRFD) || HAVE_DECL_DIRFD == 0) \
     && defined(HAVE_DIR_DD_FD)
@@ -350,47 +165,6 @@ static inline int xusleep(useconds_t usec)
         printf(ION_VERSION); \
         exit(eval);          \
     })
-
-/*
- * seek stuff
- */
-#ifndef SEEK_DATA
-#define SEEK_DATA 3
-#endif
-#ifndef SEEK_HOLE
-#define SEEK_HOLE 4
-#endif
-
-/*
- * Macros to convert #define'itions to strings, for example
- * #define XYXXY 42
- * printf ("%s=%s\n", stringify(XYXXY), stringify_value(XYXXY));
- */
-#define stringify_value(s) stringify(s)
-#define stringify(s) #s
-
-/*
- * UL_ASAN_BLACKLIST is a macro to tell AddressSanitizer (a compile-time
- * instrumentation shipped with Clang and GCC) to not instrument the
- * annotated function.  Furthermore, it will prevent the compiler from
- * inlining the function because inlining currently breaks the blacklisting
- * mechanism of AddressSanitizer.
- */
-#if __has_feature(address_sanitizer) && __has_attribute(no_sanitize_memory) \
-    && __has_attribute(no_sanitize_address)
-#define UL_ASAN_BLACKLIST                                         \
-    __attribute__((noinline)) __attribute__((no_sanitize_memory)) \
-        __attribute__((no_sanitize_address))
-#else
-#define UL_ASAN_BLACKLIST /* nothing */
-#endif
-
-/*
- * Note that sysconf(_SC_GETPW_R_SIZE_MAX) returns *initial* suggested size for
- * pwd buffer and in some cases it is not large enough. See POSIX and
- * getpwnam_r man page for more details.
- */
-#define UL_GETPW_BUFSIZ (16 * 1024)
 
 /*
  * Darwin or other BSDs may only have MAP_ANON. To get it on Darwin we must
@@ -682,10 +456,6 @@ static inline int strdup_to_offset(void* stru, size_t offset, const char* str)
     return 0;
 }
 
-/* Copy string __str to struct member _m of the struct _s */
-#define strdup_to_struct_member(_s, _m, _str) \
-    strdup_to_offset((void*)_s, offsetof(__typeof__(*(_s)), _m), _str)
-
 /* Copy string addressed by @offset between two structs */
 static inline int strdup_between_offsets(void* stru_dst, void* stru_src, size_t offset)
 {
@@ -709,11 +479,6 @@ static inline int strdup_between_offsets(void* stru_dst, void* stru_src, size_t 
     *dst = p;
     return 0;
 }
-
-/* Copy string addressed by struct member between two instances of the same
- * struct type */
-#define strdup_between_structs(_dst, _src, _m) \
-    strdup_between_offsets((void*)_dst, (void*)_src, offsetof(__typeof__(*(_src)), _m))
 
 /*
  * Match string beginning.
