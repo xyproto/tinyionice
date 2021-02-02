@@ -16,6 +16,8 @@
 #include <stddef.h>
 #include <inttypes.h>
 #include <err.h>
+#include <dirent.h>
+#include <locale.h>
 
 #ifdef __GNUC__
 
@@ -24,8 +26,10 @@
     UL_BUILD_BUG_ON_ZERO(__builtin_types_compatible_p(__typeof__(a), __typeof__(&a[0])))
 
 #else /* !__GNUC__ */
+
 #define __must_be_array(a) 0
 #define __attribute__(_arg_)
+
 #endif /* !__GNUC__ */
 
 /*
@@ -35,7 +39,6 @@
  * aren't permitted).
  */
 #define UL_BUILD_BUG_ON_ZERO(e) __extension__(sizeof(struct { int : -!!(e); }))
-#define BUILD_BUG_ON_NULL(e) ((void*)sizeof(struct { int : -!!(e); }))
 
 #define ARRAY_SIZE(arr) (sizeof(arr) / sizeof((arr)[0]) + __must_be_array(arr))
 
@@ -54,84 +57,6 @@
 #define errexec(name) \
     err(errno == ENOENT ? EX_EXEC_ENOENT : EX_EXEC_FAILED, _("failed to execute %s"), name)
 
-#if !defined(HAVE_DIRFD) && (!defined(HAVE_DECL_DIRFD) || HAVE_DECL_DIRFD == 0) \
-    && defined(HAVE_DIR_DD_FD)
-#include <dirent.h>
-#include <sys/types.h>
-static inline int dirfd(DIR* d)
-{
-    return d->dd_fd;
-}
-#endif
-
-/*
- * Fallback defines for old versions of glibc
- */
-#include <fcntl.h>
-
-#ifdef O_CLOEXEC
-#define UL_CLOEXECSTR "e"
-#else
-#define UL_CLOEXECSTR ""
-#endif
-
-#ifndef O_CLOEXEC
-#define O_CLOEXEC 0
-#endif
-
-#ifdef __FreeBSD_kernel__
-#ifndef F_DUPFD_CLOEXEC
-#define F_DUPFD_CLOEXEC 17 /* Like F_DUPFD, but FD_CLOEXEC is set */
-#endif
-#endif
-
-#ifndef AI_ADDRCONFIG
-#define AI_ADDRCONFIG 0x0020
-#endif
-
-#ifndef IUTF8
-#define IUTF8 0040000
-#endif
-
-/*
- * MAXHOSTNAMELEN replacement
- */
-static inline size_t get_hostname_max(void)
-{
-    long len = sysconf(_SC_HOST_NAME_MAX);
-
-    if (0 < len)
-        return len;
-
-#ifdef MAXHOSTNAMELEN
-    return MAXHOSTNAMELEN;
-#elif HOST_NAME_MAX
-    return HOST_NAME_MAX;
-#endif
-    return 64;
-}
-
-#define HAVE_NANOSLEEP
-
-/*
- * The usleep function was marked obsolete in POSIX.1-2001 and was removed
- * in POSIX.1-2008.  It was replaced with nanosleep() that provides more
- * advantages (like no interaction with signals and other timer functions).
- */
-#include <time.h>
-
-static inline int xusleep(useconds_t usec)
-{
-#ifdef HAVE_NANOSLEEP
-    struct timespec waittime = { .tv_sec = usec / 1000000L, .tv_nsec = (usec % 1000000L) * 1000 };
-    return nanosleep(&waittime, NULL);
-#elif defined(HAVE_USLEEP)
-    return usleep(usec);
-#else
-#error "System with usleep() or nanosleep() required!"
-#endif
-}
-
 /*
  * Constant strings for usage() functions. For more info see
  * Documentation/{howto-usage-function.txt,boilerplate.c}
@@ -143,7 +68,6 @@ static inline int xusleep(useconds_t usec)
 #define USAGE_ARGUMENTS _("\nArguments:\n")
 #define USAGE_COLUMNS _("\nAvailable output columns:\n")
 #define USAGE_SEPARATOR "\n"
-
 #define USAGE_OPTSTR_HELP _("display this help")
 #define USAGE_OPTSTR_VERSION _("display version")
 
@@ -158,14 +82,6 @@ static inline int xusleep(useconds_t usec)
       "   GiB, TiB, PiB, EiB, ZiB, and YiB (the \"iB\" is optional)\n"), \
         _name
 
-#define ION_VERSION _("%s 1.0.0\n"), program_invocation_short_name
-
-#define print_version(eval)  \
-    __extension__({          \
-        printf(ION_VERSION); \
-        exit(eval);          \
-    })
-
 /*
  * Darwin or other BSDs may only have MAP_ANON. To get it on Darwin we must
  * define _DARWIN_C_SOURCE before including sys/mman.h. We do this in config.h.
@@ -178,17 +94,6 @@ static inline int xusleep(useconds_t usec)
 #define LOCALEDIR "/usr/share/locale"
 #endif
 
-#ifdef HAVE_LOCALE_H
-#include <locale.h>
-#else
-#undef setlocale
-#define setlocale(Category, Locale) /* empty */
-struct lconv {
-    char* decimal_point;
-};
-#undef localeconv
-#define localeconv() NULL
-#endif
 
 #ifdef ENABLE_NLS
 #include <libintl.h>
@@ -218,108 +123,7 @@ struct lconv {
 #define P_(Singular, Plural, n) ((n) == 1 ? (Singular) : (Plural))
 #endif /* ENABLE_NLS */
 
-#ifdef HAVE_LANGINFO_H
 #include <langinfo.h>
-#else
-
-typedef int nl_item;
-extern char* langinfo_fallback(nl_item item);
-
-#define nl_langinfo langinfo_fallback
-
-enum {
-    CODESET = 1,
-    RADIXCHAR,
-    THOUSEP,
-    D_T_FMT,
-    D_FMT,
-    T_FMT,
-    T_FMT_AMPM,
-    AM_STR,
-    PM_STR,
-
-    DAY_1,
-    DAY_2,
-    DAY_3,
-    DAY_4,
-    DAY_5,
-    DAY_6,
-    DAY_7,
-
-    ABDAY_1,
-    ABDAY_2,
-    ABDAY_3,
-    ABDAY_4,
-    ABDAY_5,
-    ABDAY_6,
-    ABDAY_7,
-
-    MON_1,
-    MON_2,
-    MON_3,
-    MON_4,
-    MON_5,
-    MON_6,
-    MON_7,
-    MON_8,
-    MON_9,
-    MON_10,
-    MON_11,
-    MON_12,
-
-    ABMON_1,
-    ABMON_2,
-    ABMON_3,
-    ABMON_4,
-    ABMON_5,
-    ABMON_6,
-    ABMON_7,
-    ABMON_8,
-    ABMON_9,
-    ABMON_10,
-    ABMON_11,
-    ABMON_12,
-
-    ERA_D_FMT,
-    ERA_D_T_FMT,
-    ERA_T_FMT,
-    ALT_DIGITS,
-    CRNCYSTR,
-    YESEXPR,
-    NOEXPR
-};
-
-#endif /* !HAVE_LANGINFO_H */
-
-#ifndef HAVE_LANGINFO_ALTMON
-#define ALTMON_1 MON_1
-#define ALTMON_2 MON_2
-#define ALTMON_3 MON_3
-#define ALTMON_4 MON_4
-#define ALTMON_5 MON_5
-#define ALTMON_6 MON_6
-#define ALTMON_7 MON_7
-#define ALTMON_8 MON_8
-#define ALTMON_9 MON_9
-#define ALTMON_10 MON_10
-#define ALTMON_11 MON_11
-#define ALTMON_12 MON_12
-#endif /* !HAVE_LANGINFO_ALTMON */
-
-#ifndef HAVE_LANGINFO_NL_ABALTMON
-#define _NL_ABALTMON_1 ABMON_1
-#define _NL_ABALTMON_2 ABMON_2
-#define _NL_ABALTMON_3 ABMON_3
-#define _NL_ABALTMON_4 ABMON_4
-#define _NL_ABALTMON_5 ABMON_5
-#define _NL_ABALTMON_6 ABMON_6
-#define _NL_ABALTMON_7 ABMON_7
-#define _NL_ABALTMON_8 ABMON_8
-#define _NL_ABALTMON_9 ABMON_9
-#define _NL_ABALTMON_10 ABMON_10
-#define _NL_ABALTMON_11 ABMON_11
-#define _NL_ABALTMON_12 ABMON_12
-#endif /* !HAVE_LANGINFO_NL_ABALTMON */
 
 static int CLOSE_EXIT_CODE = EXIT_FAILURE;
 static int STRTOXX_EXIT_CODE = EXIT_FAILURE;
@@ -369,237 +173,7 @@ close_stdout(void)
 static inline void
 close_stdout_atexit(void)
 {
-    /*
-     * Note that close stdout at exit disables ASAN to report memory leaks
-     */
-#if !defined(__SANITIZE_ADDRESS__)
     atexit(close_stdout);
-#endif
-}
-
-/* caller guarantees n > 0 */
-static inline void xstrncpy(char* dest, const char* src, size_t n)
-{
-    strncpy(dest, src, n - 1);
-    dest[n - 1] = 0;
-}
-
-/* This is like strncpy(), but based on memcpy(), so compilers and static
- * analyzers do not complain when sizeof(destination) is the same as 'n' and
- * result is not terminated by zero.
- *
- * Use this function to copy string to logs with fixed sizes (wtmp/utmp. ...)
- * where string terminator is optional.
- */
-static inline void* str2memcpy(void* dest, const char* src, size_t n)
-{
-    size_t bytes = strlen(src) + 1;
-
-    if (bytes > n)
-        bytes = n;
-
-    memcpy(dest, src, bytes);
-    return dest;
-}
-
-static inline char* mem2strcpy(char* dest, const void* src, size_t n, size_t nmax)
-{
-    if (n + 1 > nmax)
-        n = nmax - 1;
-
-    memcpy(dest, src, n);
-    dest[nmax - 1] = '\0';
-    return dest;
-}
-
-/* Reallocate @str according to @newstr and copy @newstr to @str; returns new @str.
- * The @str is not modified if reallocation failed (like classic realloc()).
- */
-static inline char* __attribute__((warn_unused_result))
-strrealloc(char* str, const char* newstr)
-{
-    size_t nsz, osz;
-
-    if (!str)
-        return newstr ? strdup(newstr) : NULL;
-    if (!newstr)
-        return NULL;
-
-    osz = strlen(str);
-    nsz = strlen(newstr);
-
-    if (nsz > osz)
-        str = realloc(str, nsz + 1);
-    if (str)
-        memcpy(str, newstr, nsz + 1);
-    return str;
-}
-
-/* Copy string @str to struct @stru to member addressed by @offset */
-static inline int strdup_to_offset(void* stru, size_t offset, const char* str)
-{
-    char** o;
-    char* p = NULL;
-
-    if (!stru)
-        return -EINVAL;
-
-    o = (char**)((char*)stru + offset);
-    if (str) {
-        p = strdup(str);
-        if (!p)
-            return -ENOMEM;
-    }
-
-    free(*o);
-    *o = p;
-    return 0;
-}
-
-/* Copy string addressed by @offset between two structs */
-static inline int strdup_between_offsets(void* stru_dst, void* stru_src, size_t offset)
-{
-    char** src;
-    char** dst;
-    char* p = NULL;
-
-    if (!stru_src || !stru_dst)
-        return -EINVAL;
-
-    src = (char**)((char*)stru_src + offset);
-    dst = (char**)((char*)stru_dst + offset);
-
-    if (*src) {
-        p = strdup(*src);
-        if (!p)
-            return -ENOMEM;
-    }
-
-    free(*dst);
-    *dst = p;
-    return 0;
-}
-
-/*
- * Match string beginning.
- */
-static inline const char* startswith(const char* s, const char* prefix)
-{
-    size_t sz = prefix ? strlen(prefix) : 0;
-
-    if (s && sz && strncmp(s, prefix, sz) == 0)
-        return s + sz;
-    return NULL;
-}
-
-/*
- * Case insensitive match string beginning.
- */
-static inline const char* startswith_no_case(const char* s, const char* prefix)
-{
-    size_t sz = prefix ? strlen(prefix) : 0;
-
-    if (s && sz && strncasecmp(s, prefix, sz) == 0)
-        return s + sz;
-    return NULL;
-}
-
-/*
- * Match string ending.
- */
-static inline const char* endswith(const char* s, const char* postfix)
-{
-    size_t sl = s ? strlen(s) : 0;
-    size_t pl = postfix ? strlen(postfix) : 0;
-
-    if (pl == 0)
-        return s + sl;
-    if (sl < pl)
-        return NULL;
-    if (memcmp(s + sl - pl, postfix, pl) != 0)
-        return NULL;
-    return s + sl - pl;
-}
-
-/*
- * Skip leading white space.
- */
-static inline const char* skip_space(const char* p)
-{
-    while (isspace(*p))
-        ++p;
-    return p;
-}
-
-static inline const char* skip_blank(const char* p)
-{
-    while (isblank(*p))
-        ++p;
-    return p;
-}
-
-/* Removes whitespace from the right-hand side of a string (trailing
- * whitespace).
- *
- * Returns size of the new string (without \0).
- */
-static inline size_t rtrim_whitespace(unsigned char* str)
-{
-    size_t i;
-
-    if (!str)
-        return 0;
-    i = strlen((char*)str);
-    while (i) {
-        i--;
-        if (!isspace(str[i])) {
-            i++;
-            break;
-        }
-    }
-    str[i] = '\0';
-    return i;
-}
-
-/* Removes whitespace from the left-hand side of a string.
- *
- * Returns size of the new string (without \0).
- */
-static inline size_t ltrim_whitespace(unsigned char* str)
-{
-    size_t len;
-    unsigned char* p;
-
-    if (!str)
-        return 0;
-    for (p = str; *p && isspace(*p); p++)
-        ;
-
-    len = strlen((char*)p);
-
-    if (p > str)
-        memmove(str, p, len + 1);
-
-    return len;
-}
-
-static inline void strrep(char* s, int find, int replace)
-{
-    while (s && *s && (s = strchr(s, find)) != NULL)
-        *s++ = replace;
-}
-
-static inline void strrem(char* s, int rem)
-{
-    char* p;
-
-    if (!s)
-        return;
-    for (p = s; *s; s++) {
-        if (*s != rem)
-            *p++ = *s;
-    }
-    *p = '\0';
 }
 
 int64_t strtos64_or_err(const char* str, const char* errmesg)
@@ -812,9 +386,9 @@ int main(int argc, char** argv)
         case 't':
             tolerant = 1;
             break;
-
         case 'V':
-            print_version(EXIT_SUCCESS);
+            printf("%s %s\n", "ion", "1.0.0");
+            exit(EXIT_SUCCESS);
         case 'h':
             usage();
         default:
