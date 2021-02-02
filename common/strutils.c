@@ -59,17 +59,6 @@ char* strndup(const char* s, size_t n)
 
 static uint32_t _strtou32_or_err(const char* str, const char* errmesg, int base);
 
-int16_t strtos16_or_err(const char* str, const char* errmesg)
-{
-    int32_t num = strtos32_or_err(str, errmesg);
-
-    if (num < INT16_MIN || num > INT16_MAX) {
-        errno = ERANGE;
-        err(STRTOXX_EXIT_CODE, "%s: '%s'", errmesg, str);
-    }
-    return num;
-}
-
 int32_t strtos32_or_err(const char* str, const char* errmesg)
 {
     int64_t num = strtos64_or_err(str, errmesg);

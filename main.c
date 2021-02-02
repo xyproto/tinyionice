@@ -8,6 +8,10 @@
 
 #define HAVE_FSYNC
 #define HAVE_PROGRAM_INVOCATION_SHORT_NAME "ion"
+#define HAVE_STRNDUP
+#define HAVE_STRNLEN
+#define HAVE_STRNCHR
+#define HAVE_MEMPCPY
 
 #include "c.h"
 #include "closestream.h"
@@ -120,8 +124,6 @@ static void __attribute__((__noreturn__)) usage(void)
 
     fputs(USAGE_SEPARATOR, out);
     printf(USAGE_HELP_OPTIONS(24));
-
-    printf(USAGE_MAN_TAIL("ion(1)"));
 
     exit(EXIT_SUCCESS);
 }

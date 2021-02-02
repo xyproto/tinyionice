@@ -16,37 +16,14 @@ extern int parse_size(const char* str, uintmax_t* res, int* power);
 extern int strtosize(const char* str, uintmax_t* res);
 extern uintmax_t strtosize_or_err(const char* str, const char* errmesg);
 
-extern int16_t strtos16_or_err(const char* str, const char* errmesg);
-extern uint16_t strtou16_or_err(const char* str, const char* errmesg);
-extern uint16_t strtox16_or_err(const char* str, const char* errmesg);
-
 extern int32_t strtos32_or_err(const char* str, const char* errmesg);
-extern uint32_t strtou32_or_err(const char* str, const char* errmesg);
-extern uint32_t strtox32_or_err(const char* str, const char* errmesg);
 
 extern int64_t strtos64_or_err(const char* str, const char* errmesg);
-extern uint64_t strtou64_or_err(const char* str, const char* errmesg);
-extern uint64_t strtox64_or_err(const char* str, const char* errmesg);
-
-extern double strtod_or_err(const char* str, const char* errmesg);
-
-extern long strtol_or_err(const char* str, const char* errmesg);
-extern unsigned long strtoul_or_err(const char* str, const char* errmesg);
-
-extern void strtotimeval_or_err(const char* str, struct timeval* tv,
-    const char* errmesg);
-
-extern int isdigit_strend(const char* str, const char** end);
-#define isdigit_string(_s) isdigit_strend(_s, NULL)
-
-extern int isxdigit_strend(const char* str, const char** end);
-#define isxdigit_string(_s) isxdigit_strend(_s, NULL)
-
-extern int parse_switch(const char* arg, const char* errmesg, ...);
 
 #ifndef HAVE_MEMPCPY
 extern void* mempcpy(void* restrict dest, const void* restrict src, size_t n);
 #endif
+
 #ifndef HAVE_STRNLEN
 extern size_t strnlen(const char* s, size_t maxlen);
 #endif
@@ -169,8 +146,6 @@ static inline int strdup_between_offsets(void* stru_dst, void* stru_src, size_t 
 #define strdup_between_structs(_dst, _src, _m) \
     strdup_between_offsets((void*)_dst, (void*)_src, offsetof(__typeof__(*(_src)), _m))
 
-extern char* xstrmode(mode_t mode, char* str);
-
 /* Options for size_to_human_string() */
 enum {
     SIZE_SUFFIX_1LETTER = 0,
@@ -178,24 +153,6 @@ enum {
     SIZE_SUFFIX_SPACE = (1 << 1),
     SIZE_DECIMAL_2DIGITS = (1 << 2)
 };
-
-extern char* size_to_human_string(int options, uint64_t bytes);
-
-extern int string_to_idarray(const char* list, int ary[], size_t arysz,
-    int(name2id)(const char*, size_t));
-extern int string_add_to_idarray(const char* list, int ary[],
-    size_t arysz, size_t* ary_pos,
-    int(name2id)(const char*, size_t));
-
-extern int string_to_bitarray(const char* list, char* ary,
-    int (*name2bit)(const char*, size_t));
-
-extern int string_to_bitmask(const char* list,
-    unsigned long* mask,
-    long (*name2flag)(const char*, size_t));
-extern int parse_range(const char* str, int* lower, int* upper, int def);
-
-extern int streq_paths(const char* a, const char* b);
 
 /*
  * Match string beginning.
@@ -318,13 +275,5 @@ static inline void strrem(char* s, int rem)
     }
     *p = '\0';
 }
-
-extern char* strnappend(const char* s, const char* suffix, size_t b);
-extern char* strappend(const char* s, const char* suffix);
-extern char* strfappend(const char* s, const char* format, ...)
-    __attribute__((__format__(__printf__, 2, 0)));
-extern const char* split(const char** state, size_t* l, const char* separator, int quoted);
-
-extern int skip_fline(FILE* fp);
 
 #endif

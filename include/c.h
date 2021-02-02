@@ -364,8 +364,6 @@ static inline int xusleep(useconds_t usec)
       "   GiB, TiB, PiB, EiB, ZiB, and YiB (the \"iB\" is optional)\n"), \
         _name
 
-#define USAGE_MAN_TAIL(_man) _("\nFor more details see %s.\n"), _man
-
 #define ION_VERSION _("%s 1.0.0\n"), program_invocation_short_name
 
 #define print_version(eval) __extension__({ \
