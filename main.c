@@ -1,36 +1,22 @@
-#include <errno.h>
-#include <getopt.h>
-#include <stdio.h>
-#include <stdlib.h>
-#include <sys/syscall.h>
-#include <stdint.h>
-#include <unistd.h>
 #include <assert.h>
 #include <ctype.h>
-#include <string.h>
-#include <sys/stat.h>
-#include <sys/types.h>
-#include <unistd.h>
+#include <dirent.h>
+#include <err.h>
+#include <errno.h>
+#include <getopt.h>
+#include <inttypes.h>
 #include <limits.h>
+#include <locale.h>
 #include <stdarg.h>
 #include <stddef.h>
-#include <inttypes.h>
-#include <err.h>
-#include <dirent.h>
-#include <locale.h>
-
-#ifdef __GNUC__
-
-/* &a[0] degrades to a pointer: a different type from an array */
-#define __must_be_array(a) \
-    UL_BUILD_BUG_ON_ZERO(__builtin_types_compatible_p(__typeof__(a), __typeof__(&a[0])))
-
-#else /* !__GNUC__ */
-
-#define __must_be_array(a) 0
-#define __attribute__(_arg_)
-
-#endif /* !__GNUC__ */
+#include <stdint.h>
+#include <stdio.h>
+#include <stdlib.h>
+#include <string.h>
+#include <sys/stat.h>
+#include <sys/syscall.h>
+#include <sys/types.h>
+#include <unistd.h>
 
 /*
  * Force a compilation error if condition is true, but also produce a
@@ -39,8 +25,6 @@
  * aren't permitted).
  */
 #define UL_BUILD_BUG_ON_ZERO(e) __extension__(sizeof(struct { int : -!!(e); }))
-
-#define ARRAY_SIZE(arr) (sizeof(arr) / sizeof((arr)[0]) + __must_be_array(arr))
 
 /* Don't use inline function to avoid '#include "nls.h"' in c.h
  */
@@ -63,10 +47,6 @@
  */
 #define USAGE_HEADER _("\nUsage:\n")
 #define USAGE_OPTIONS _("\nOptions:\n")
-#define USAGE_FUNCTIONS _("\nFunctions:\n")
-#define USAGE_COMMANDS _("\nCommands:\n")
-#define USAGE_ARGUMENTS _("\nArguments:\n")
-#define USAGE_COLUMNS _("\nAvailable output columns:\n")
 #define USAGE_SEPARATOR "\n"
 #define USAGE_OPTSTR_HELP _("display this help")
 #define USAGE_OPTSTR_VERSION _("display version")
@@ -75,12 +55,6 @@
     "%-" #marg_dsc "s%s\n"           \
     "%-" #marg_dsc "s%s\n",          \
         " -h, --help", USAGE_OPTSTR_HELP, " -V, --version", USAGE_OPTSTR_VERSION
-
-#define USAGE_ARG_SEPARATOR "\n"
-#define USAGE_ARG_SIZE(_name)                                            \
-    _(" %s arguments may be followed by the suffixes for\n"              \
-      "   GiB, TiB, PiB, EiB, ZiB, and YiB (the \"iB\" is optional)\n"), \
-        _name
 
 /*
  * Darwin or other BSDs may only have MAP_ANON. To get it on Darwin we must
@@ -93,7 +67,6 @@
 #ifndef LOCALEDIR
 #define LOCALEDIR "/usr/share/locale"
 #endif
-
 
 #ifdef ENABLE_NLS
 #include <libintl.h>
@@ -248,11 +221,11 @@ static const char* to_prio[] = {
 
 static int parse_ioclass(const char* str)
 {
-    size_t i;
-
-    for (i = 0; i < ARRAY_SIZE(to_prio); i++)
-        if (!strcasecmp(str, to_prio[i]))
+    for (size_t i = 0; i < 4; i++) {
+        if (!strcasecmp(str, to_prio[i])) {
             return i;
+        }
+    }
     return -1;
 }
 
@@ -266,7 +239,7 @@ static void ioprio_print(int pid, int who)
         int ioclass = IOPRIO_PRIO_CLASS(ioprio);
         const char* name = _("unknown");
 
-        if (ioclass >= 0 && (size_t)ioclass < ARRAY_SIZE(to_prio))
+        if (ioclass >= 0 && (size_t)ioclass < 4)
             name = to_prio[ioclass];
 
         if (ioclass != IOPRIO_CLASS_IDLE)
@@ -290,11 +263,10 @@ static void __attribute__((__noreturn__)) usage(void)
 {
     FILE* out = stdout;
     fputs(USAGE_HEADER, out);
-    fprintf(out, _(" %1$s [options] -p <pid>...\n"
-                   " %1$s [options] -P <pgid>...\n"
-                   " %1$s [options] -u <uid>...\n"
-                   " %1$s [options] <command>\n"),
-        program_invocation_short_name);
+    fprintf(out, _(" ion [options] -p <pid>...\n"
+                   " ion [options] -P <pgid>...\n"
+                   " ion [options] -u <uid>...\n"
+                   " ion [options] <command>\n"));
 
     fputs(USAGE_SEPARATOR, out);
     fputs(_("Show or change the I/O-scheduling class and priority of a process.\n"), out);
