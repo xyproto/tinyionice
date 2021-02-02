@@ -7,7 +7,6 @@
 #include <unistd.h>
 
 #define HAVE_FSYNC
-#define ION_VERSION "1.0.0"
 #define HAVE_PROGRAM_INVOCATION_SHORT_NAME "ion"
 
 #include "c.h"
