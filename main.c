@@ -177,19 +177,19 @@ int32_t strtos32_or_err(const char* str, const char* errmesg)
         errno = ERANGE;
         err(STRTOXX_EXIT_CODE, "%s: '%s'", errmesg, str);
     }
-    return num;
+    return (int32_t)num;
 }
 
 static int tolerant;
 
 static inline int ioprio_set(int which, int who, int ioprio)
 {
-    return syscall(SYS_ioprio_set, which, who, ioprio);
+    return (int)syscall(SYS_ioprio_set, which, who, ioprio);
 }
 
 static inline int ioprio_get(int which, int who)
 {
-    return syscall(SYS_ioprio_get, which, who);
+    return (int)syscall(SYS_ioprio_get, which, who);
 }
 
 enum {
@@ -221,7 +221,7 @@ static const char* to_prio[] = {
 
 static int parse_ioclass(const char* str)
 {
-    for (size_t i = 0; i < 4; i++) {
+    for (int i = 0; i < 4; i++) {
         if (!strcasecmp(str, to_prio[i])) {
             return i;
         }
