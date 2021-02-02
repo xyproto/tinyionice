@@ -64,10 +64,6 @@
 #define MAP_ANONYMOUS (MAP_ANON)
 #endif
 
-#ifndef LOCALEDIR
-#define LOCALEDIR "/usr/share/locale"
-#endif
-
 #ifdef ENABLE_NLS
 #include <libintl.h>
 /*
@@ -308,7 +304,7 @@ int main(int argc, char** argv)
     };
 
     setlocale(LC_ALL, "");
-    bindtextdomain(PACKAGE, LOCALEDIR);
+    bindtextdomain(PACKAGE, "/usr/share/locale");
     textdomain(PACKAGE);
     close_stdout_atexit();
 
