@@ -10,6 +10,8 @@ Builds with [cxx](https://github.com/xyproto/cxx):
 
     cxx
 
-This fork mainly consists of a single `main.c` file with 428 lines of code.
+This fork mainly consists of a single `main.c` file with 424 lines of code.
+
+I'm in the process of removing all defines and ifdefs.
 
 Version: 1.0.0
