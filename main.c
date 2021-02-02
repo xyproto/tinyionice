@@ -17,16 +17,13 @@
 #include <sys/types.h>
 #include <unistd.h>
 
-static inline int
-flush_standard_stream(FILE* stream)
+static inline int flush_standard_stream(FILE* stream)
 {
     int fd;
-
     errno = 0;
-
-    if (ferror(stream) != 0 || fflush(stream) != 0)
-        goto error;
-
+    if (ferror(stream) != 0 || fflush(stream) != 0) {
+        return (errno == EBADF) ? 0 : EOF;
+    }
     /*
      * Calling fflush is not sufficient on some filesystems
      * like e.g. NFS, which may defer the actual flush until
@@ -35,54 +32,47 @@ flush_standard_stream(FILE* stream)
      * around this issue by calling close on a dup'd file
      * descriptor from the stream.
      */
-    if ((fd = fileno(stream)) < 0 || (fd = dup(fd)) < 0 || close(fd) != 0)
-        goto error;
-
+    if ((fd = fileno(stream)) < 0 || (fd = dup(fd)) < 0 || close(fd) != 0) {
+        return (errno == EBADF) ? 0 : EOF;
+    }
     return 0;
-error:
-    return (errno == EBADF) ? 0 : EOF;
 }
 
 /* Meant to be used atexit(close_stdout); */
-static inline void
-close_stdout(void)
+static inline void close_stdout(void)
 {
     if (flush_standard_stream(stdout) != 0 && !(errno == EPIPE)) {
-        if (errno)
+        if (errno) {
             warn("write error");
-        else
+        } else {
             warnx("write error");
+        }
         _exit(EXIT_FAILURE);
     }
-
-    if (flush_standard_stream(stderr) != 0)
+    if (flush_standard_stream(stderr) != 0) {
         _exit(EXIT_FAILURE);
-}
-
-static inline void
-close_stdout_atexit(void)
-{
-    atexit(close_stdout);
+    }
 }
 
 int64_t strtos64_or_err(const char* str, const char* errmesg)
 {
     int64_t num;
     char* end = NULL;
-
     errno = 0;
-    if (str == NULL || *str == '\0')
-        goto err;
+    if (str == NULL || *str == '\0') {
+        if (errno == ERANGE) {
+            err(EXIT_FAILURE, "%s: '%s'", errmesg, str);
+        }
+        errx(EXIT_FAILURE, "%s: '%s'", errmesg, str);
+    }
     num = strtoimax(str, &end, 10);
-
-    if (errno || str == end || (end && *end))
-        goto err;
-
+    if (errno || str == end || (end && *end)) {
+        if (errno == ERANGE) {
+            err(EXIT_FAILURE, "%s: '%s'", errmesg, str);
+        }
+        errx(EXIT_FAILURE, "%s: '%s'", errmesg, str);
+    }
     return num;
-err:
-    if (errno == ERANGE)
-        err(EXIT_FAILURE, "%s: '%s'", errmesg, str);
-    errx(EXIT_FAILURE, "%s: '%s'", errmesg, str);
 }
 
 int32_t strtos32_or_err(const char* str, const char* errmesg)
@@ -94,8 +84,6 @@ int32_t strtos32_or_err(const char* str, const char* errmesg)
     }
     return (int32_t)num;
 }
-
-static int tolerant;
 
 static inline int ioprio_set(int which, int who, int ioprio)
 {
@@ -120,27 +108,26 @@ enum {
     IOPRIO_WHO_USER,
 };
 
-// #define IOPRIO_CLASS_SHIFT 13
 static int IOPRIO_CLASS_SHIFT = 13;
 
-// #define IOPRIO_PRIO_MASK ((1UL << IOPRIO_CLASS_SHIFT) - 1)
-static inline int IOPRIO_PRIO_MASK() {
+static inline unsigned long IOPRIO_PRIO_MASK()
+{
     return (1UL << IOPRIO_CLASS_SHIFT) - 1;
 }
 
-// #define IOPRIO_PRIO_CLASS(mask) ((mask) >> IOPRIO_CLASS_SHIFT)
-static inline int IOPRIO_PRIO_CLASS(int mask) {
+static inline unsigned long IOPRIO_PRIO_CLASS(unsigned long mask)
+{
     return mask >> IOPRIO_CLASS_SHIFT;
 }
 
-// #define IOPRIO_PRIO_DATA(mask) ((mask)&IOPRIO_PRIO_MASK)
-static inline int IOPRIO_PRIO_DATA(int mask) {
+static inline unsigned long IOPRIO_PRIO_DATA(unsigned long mask)
+{
     return mask & IOPRIO_PRIO_MASK();
 }
 
-// #define IOPRIO_PRIO_VALUE(class, data) (((class) << IOPRIO_CLASS_SHIFT) | data)
-static inline int IOPRIO_PRIO_VALUE(int class, int data) {
-    return (((class) << IOPRIO_CLASS_SHIFT) | data);
+static inline unsigned long IOPRIO_PRIO_VALUE(unsigned long class, unsigned long data)
+{
+    return ((class << IOPRIO_CLASS_SHIFT) | data);
 }
 
 static const char* to_prio[] = {
@@ -163,31 +150,29 @@ static int parse_ioclass(const char* str)
 static void ioprio_print(int pid, int who)
 {
     int ioprio = ioprio_get(who, pid);
-
-    if (ioprio == -1)
+    if (ioprio == -1) {
         err(EXIT_FAILURE, "ioprio_get failed");
-    else {
-        int ioclass = IOPRIO_PRIO_CLASS(ioprio);
-        const char* name = "unknown";
-
-        if (ioclass >= 0 && (size_t)ioclass < 4)
-            name = to_prio[ioclass];
-
-        if (ioclass != IOPRIO_CLASS_IDLE)
-            printf("%s: prio %lu\n", name,
-                IOPRIO_PRIO_DATA(ioprio));
-        else
-            printf("%s\n", name);
+    }
+    int ioclass = IOPRIO_PRIO_CLASS(ioprio);
+    const char* name = "unknown";
+    if (ioclass >= 0 && (size_t)ioclass < 4) {
+        name = to_prio[ioclass];
+    }
+    if (ioclass != IOPRIO_CLASS_IDLE) {
+        printf("%s: prio %lu\n", name, IOPRIO_PRIO_DATA(ioprio));
+    } else {
+        printf("%s\n", name);
     }
 }
 
+static int tolerant;
+
 static void ioprio_setid(int which, int ioclass, int data, int who)
 {
-    int rc = ioprio_set(who, which,
-        IOPRIO_PRIO_VALUE(ioclass, data));
-
-    if (rc == -1 && !tolerant)
+    int rc = ioprio_set(who, which, IOPRIO_PRIO_VALUE(ioclass, data));
+    if (rc == -1 && !tolerant) {
         err(EXIT_FAILURE, "ioprio_set failed");
+    }
 }
 
 static void __attribute__((__noreturn__)) usage(void)
@@ -224,8 +209,12 @@ static void __attribute__((__noreturn__)) usage(void)
 
 int main(int argc, char** argv)
 {
-    int data = 4, set = 0, ioclass = IOPRIO_CLASS_BE, c;
-    int which = 0, who = 0;
+    int data = 4;
+    int set = 0;
+    int ioclass = IOPRIO_CLASS_BE;
+    int c = 0;
+    int which = 0;
+    int who = 0;
     const char* invalid_msg = NULL;
 
     static const struct option longopts[] = {
@@ -240,7 +229,7 @@ int main(int argc, char** argv)
         { NULL, 0, NULL, 0 }
     };
 
-    close_stdout_atexit();
+    atexit(close_stdout);
 
     while ((c = getopt_long(argc, argv, "+n:c:p:P:u:tVh", longopts, NULL)) != EOF)
         switch (c) {
@@ -294,42 +283,41 @@ int main(int argc, char** argv)
         case 'h':
             usage();
         default:
-            fprintf(
-                stderr, "Try '%s --help' for more information.\n", program_invocation_short_name);
+            fprintf(stderr, "Try '%s --help' for more information.\n", "ion");
             exit(EXIT_FAILURE);
         }
-
     switch (ioclass) {
     case IOPRIO_CLASS_NONE:
-        if ((set & 1) && !tolerant)
+        if ((set & 1) && !tolerant) {
             warnx("ignoring given class data for none class");
+        }
         data = 0;
         break;
     case IOPRIO_CLASS_RT:
     case IOPRIO_CLASS_BE:
         break;
     case IOPRIO_CLASS_IDLE:
-        if ((set & 1) && !tolerant)
+        if ((set & 1) && !tolerant) {
             warnx("ignoring given class data for idle class");
+        }
         data = 7;
         break;
     default:
-        if (!tolerant)
+        if (!tolerant) {
             warnx("unknown prio class %d", ioclass);
+        }
         break;
     }
-
-    if (!set && !which && optind == argc)
+    if (!set && !which && optind == argc) {
         /*
          * ion without options, print the current ioprio
          */
         ioprio_print(0, IOPRIO_WHO_PROCESS);
-    else if (!set && who) {
+    } else if (!set && who) {
         /*
          * ion -p|-P|-u ID [ID ...]
          */
         ioprio_print(which, who);
-
         for (; argv[optind]; ++optind) {
             which = strtos32_or_err(argv[optind], invalid_msg);
             ioprio_print(which, who);
@@ -339,7 +327,6 @@ int main(int argc, char** argv)
          * ion -c CLASS -p|-P|-u ID [ID ...]
          */
         ioprio_setid(which, ioclass, data, who);
-
         for (; argv[optind]; ++optind) {
             which = strtos32_or_err(argv[optind], invalid_msg);
             ioprio_setid(which, ioclass, data, who);
@@ -350,15 +337,12 @@ int main(int argc, char** argv)
          */
         ioprio_setid(0, ioclass, data, IOPRIO_WHO_PROCESS);
         execvp(argv[optind], &argv[optind]);
-
         static int EX_EXEC_FAILED = 126; // Program located, but not usable
         static int EX_EXEC_ENOENT = 127; // Could not find program to exec
-
         err(errno == ENOENT ? EX_EXEC_ENOENT : EX_EXEC_FAILED, "failed to execute %s", argv[optind]);
     } else {
         warnx("bad usage");
-        fprintf(
-            stderr, "Try '%s --help' for more information.\n", program_invocation_short_name);
+        fprintf(stderr, "Try '%s --help' for more information.\n", "ion");
         exit(EXIT_FAILURE);
     }
 
