@@ -10,7 +10,7 @@ Standalone fork of `ionice` from [util-linux](https://github.com/karelzak/util-l
 
 Build:
 
-    gcc -std=c11 -Ofast -fPIC -fstack-protector-strong -D_GNU_SOURCE main.c -o ion
+    gcc -O2 -fPIC -fstack-protector-strong -D_GNU_SOURCE main.c -o ion
 
 Install:
 
