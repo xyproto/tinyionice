@@ -3,11 +3,14 @@
 #include <errno.h>
 #include <getopt.h>
 #include <inttypes.h>
+#include <stdbool.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
 #include <sys/syscall.h>
 #include <unistd.h>
+
+static const char* versionString = "ion 1.0.0";
 
 static inline int flush_standard_stream(FILE* stream)
 {
@@ -157,9 +160,7 @@ static void ioprio_print(int pid, int who)
     }
 }
 
-static int tolerant;
-
-static void ioprio_setid(int which, int ioclass, int data, int who)
+static void ioprio_setid(int which, int ioclass, int data, int who, bool tolerant)
 {
     int rc = ioprio_set(who, which, IOPRIO_PRIO_VALUE(ioclass, data));
     if (rc == -1 && !tolerant) {
@@ -201,13 +202,10 @@ static void __attribute__((__noreturn__)) usage(void)
 
 int main(int argc, char** argv)
 {
-    int data = 4;
-    int set = 0;
+    int data = 4, set = 0, c = 0, which = 0, who = 0;
     int ioclass = IOPRIO_CLASS_BE;
-    int c = 0;
-    int which = 0;
-    int who = 0;
     const char* invalid_msg = NULL;
+    bool tolerant = false;
 
     static const struct option longopts[] = {
         { "classdata", required_argument, NULL, 'n' },
@@ -231,37 +229,31 @@ int main(int argc, char** argv)
             break;
         case 'c':
             if (isdigit(*optarg))
-                ioclass = strtos32_or_err(optarg,
-                    "invalid class argument");
+                ioclass = strtos32_or_err(optarg, "invalid class argument");
             else {
                 ioclass = parse_ioclass(optarg);
                 if (ioclass < 0)
-                    errx(EXIT_FAILURE,
-                        "unknown scheduling class: '%s'",
-                        optarg);
+                    errx(EXIT_FAILURE, "unknown scheduling class: '%s'", optarg);
             }
             set |= 2;
             break;
         case 'p':
             if (who)
-                errx(EXIT_FAILURE,
-                    "can handle only one of pid, pgid or uid at once");
+                errx(EXIT_FAILURE, "can handle only one of pid, pgid or uid at once");
             invalid_msg = "invalid PID argument";
             which = strtos32_or_err(optarg, invalid_msg);
             who = IOPRIO_WHO_PROCESS;
             break;
         case 'P':
             if (who)
-                errx(EXIT_FAILURE,
-                    "can handle only one of pid, pgid or uid at once");
+                errx(EXIT_FAILURE, "can handle only one of pid, pgid or uid at once");
             invalid_msg = "invalid PGID argument";
             which = strtos32_or_err(optarg, invalid_msg);
             who = IOPRIO_WHO_PGRP;
             break;
         case 'u':
             if (who)
-                errx(EXIT_FAILURE,
-                    "can handle only one of pid, pgid or uid at once");
+                errx(EXIT_FAILURE, "can handle only one of pid, pgid or uid at once");
             invalid_msg = "invalid UID argument";
             which = strtos32_or_err(optarg, invalid_msg);
             who = IOPRIO_WHO_USER;
@@ -270,14 +262,15 @@ int main(int argc, char** argv)
             tolerant = 1;
             break;
         case 'V':
-            printf("%s %s\n", "ion", "1.0.0");
+            printf("%s\n", versionString);
             exit(EXIT_SUCCESS);
         case 'h':
             usage();
         default:
-            fprintf(stderr, "Try '%s --help' for more information.\n", "ion");
+            fprintf(stderr, "Try 'ion --help' for more information.\n");
             exit(EXIT_FAILURE);
         }
+
     switch (ioclass) {
     case IOPRIO_CLASS_NONE:
         if ((set & 1) && !tolerant) {
@@ -301,42 +294,33 @@ int main(int argc, char** argv)
         break;
     }
     if (!set && !which && optind == argc) {
-        /*
-         * ion without options, print the current ioprio
-         */
+        // ion without options, print the current ioprio
         ioprio_print(0, IOPRIO_WHO_PROCESS);
     } else if (!set && who) {
-        /*
-         * ion -p|-P|-u ID [ID ...]
-         */
+        // ion -p|-P|-u ID [ID ...]
         ioprio_print(which, who);
         for (; argv[optind]; ++optind) {
             which = strtos32_or_err(argv[optind], invalid_msg);
             ioprio_print(which, who);
         }
     } else if (set && who) {
-        /*
-         * ion -c CLASS -p|-P|-u ID [ID ...]
-         */
-        ioprio_setid(which, ioclass, data, who);
+        // ion -c CLASS -p|-P|-u ID [ID ...]
+        ioprio_setid(which, ioclass, data, who, tolerant);
         for (; argv[optind]; ++optind) {
             which = strtos32_or_err(argv[optind], invalid_msg);
-            ioprio_setid(which, ioclass, data, who);
+            ioprio_setid(which, ioclass, data, who, tolerant);
         }
     } else if (argv[optind]) {
-        /*
-         * ion [-c CLASS] COMMAND
-         */
-        ioprio_setid(0, ioclass, data, IOPRIO_WHO_PROCESS);
+        // ion [-c CLASS] COMMAND
+        ioprio_setid(0, ioclass, data, IOPRIO_WHO_PROCESS, tolerant);
         execvp(argv[optind], &argv[optind]);
         static int EX_EXEC_FAILED = 126; // Program located, but not usable
         static int EX_EXEC_ENOENT = 127; // Could not find program to exec
         err(errno == ENOENT ? EX_EXEC_ENOENT : EX_EXEC_FAILED, "failed to execute %s", argv[optind]);
     } else {
         warnx("bad usage");
-        fprintf(stderr, "Try '%s --help' for more information.\n", "ion");
+        fprintf(stderr, "Try 'ion --help' for more information.\n");
         exit(EXIT_FAILURE);
     }
-
     return EXIT_SUCCESS;
 }
