@@ -4,3 +4,4 @@ ion
 *.tmp
 *.swp
 *~
+*.out
