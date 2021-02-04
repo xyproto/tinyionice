@@ -8,13 +8,15 @@ Small fork of `ionice` from [util-linux](https://github.com/karelzak/util-linux)
 * Other than that it's a fully featured drop-in replacement of `ionice` in just 326 lines of C.
 * The resulting executable is 18k when built with GCC 10 on Linux. It can also be built with [cxx](https://github.com/xyproto/cxx).
 
-Build:
+## Build
 
     gcc -O2 -fPIC -fstack-protector-strong -D_GNU_SOURCE main.c -o ion
 
-Install:
+## Install
 
     sudo install -Dm755 ion /usr/bin/ion
 
-Version: 1.0.0
-License: GPL2
+## General info
+
+* Version: 1.0.0
+* License: GPL2
