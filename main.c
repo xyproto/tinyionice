@@ -10,7 +10,7 @@
 #include <sys/syscall.h>
 #include <unistd.h>
 
-static const char* versionString = "ion 1.0.0";
+static const char* versionString = "tinyionice 1.0.0";
 
 static inline int flush_standard_stream(FILE* stream)
 {
@@ -172,10 +172,10 @@ static void __attribute__((__noreturn__)) usage(void)
 {
     FILE* out = stdout;
     fputs("\nUsage:\n", out);
-    fprintf(out, " ion [options] -p <pid>...\n"
-                 " ion [options] -P <pgid>...\n"
-                 " ion [options] -u <uid>...\n"
-                 " ion [options] <command>\n");
+    fprintf(out, " tinyionice [options] -p <pid>...\n"
+                 " tinyionice [options] -P <pgid>...\n"
+                 " tinyionice [options] -u <uid>...\n"
+                 " tinyionice [options] <command>\n");
 
     fputs("\n", out);
     fputs("Show or change the I/O-scheduling class and priority of a process.\n", out);
@@ -267,7 +267,7 @@ int main(int argc, char** argv)
         case 'h':
             usage();
         default:
-            fprintf(stderr, "Try 'ion --help' for more information.\n");
+            fprintf(stderr, "Try 'tinyionice --help' for more information.\n");
             exit(EXIT_FAILURE);
         }
 
@@ -294,24 +294,24 @@ int main(int argc, char** argv)
         break;
     }
     if (!set && !which && optind == argc) {
-        // ion without options, print the current ioprio
+        // tinyionice without options, print the current ioprio
         ioprio_print(0, IOPRIO_WHO_PROCESS);
     } else if (!set && who) {
-        // ion -p|-P|-u ID [ID ...]
+        // tinyionice -p|-P|-u ID [ID ...]
         ioprio_print(which, who);
         for (; argv[optind]; ++optind) {
             which = strtos32_or_err(argv[optind], invalid_msg);
             ioprio_print(which, who);
         }
     } else if (set && who) {
-        // ion -c CLASS -p|-P|-u ID [ID ...]
+        // tinyionice -c CLASS -p|-P|-u ID [ID ...]
         ioprio_setid(which, ioclass, data, who, tolerant);
         for (; argv[optind]; ++optind) {
             which = strtos32_or_err(argv[optind], invalid_msg);
             ioprio_setid(which, ioclass, data, who, tolerant);
         }
     } else if (argv[optind]) {
-        // ion [-c CLASS] COMMAND
+        // tinyionce [-c CLASS] COMMAND
         ioprio_setid(0, ioclass, data, IOPRIO_WHO_PROCESS, tolerant);
         execvp(argv[optind], &argv[optind]);
         static int EX_EXEC_FAILED = 126; // Program located, but not usable
@@ -319,7 +319,7 @@ int main(int argc, char** argv)
         err(errno == ENOENT ? EX_EXEC_ENOENT : EX_EXEC_FAILED, "failed to execute %s", argv[optind]);
     } else {
         warnx("bad usage");
-        fprintf(stderr, "Try 'ion --help' for more information.\n");
+        fprintf(stderr, "Try 'tinyionice --help' for more information.\n");
         exit(EXIT_FAILURE);
     }
     return EXIT_SUCCESS;

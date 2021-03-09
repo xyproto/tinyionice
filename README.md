@@ -1,4 +1,4 @@
-# ion
+# Tiny I/O nice
 
 Small fork of `ionice` from [util-linux](https://github.com/karelzak/util-linux).
 
@@ -10,11 +10,11 @@ Small fork of `ionice` from [util-linux](https://github.com/karelzak/util-linux)
 
 ## Build
 
-    gcc -O2 -fPIC -fstack-protector-strong -D_GNU_SOURCE main.c -o ion
+    gcc -O2 -fPIC -fstack-protector-strong -D_GNU_SOURCE main.c -o tinyionice
 
 ## Install
 
-    sudo install -Dm755 ion /usr/bin/ion
+    sudo install -Dm755 tinyionice /usr/bin/tinyionice
 
 ## General info
 
