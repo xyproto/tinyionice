@@ -43,13 +43,12 @@ static inline void close_stdout(void)
             warnx("write error");
         }
         _exit(EXIT_FAILURE);
-    }
-    if (flush_standard_stream(stderr) != 0) {
+    } else if (flush_standard_stream(stderr) != 0) {
         _exit(EXIT_FAILURE);
     }
 }
 
-int64_t strtos64_or_err(const char* str, const char* errmesg)
+static inline int64_t strtos64_or_err(const char* str, const char* errmesg)
 {
     int64_t num;
     char* end = NULL;
@@ -70,7 +69,7 @@ int64_t strtos64_or_err(const char* str, const char* errmesg)
     return num;
 }
 
-int32_t strtos32_or_err(const char* str, const char* errmesg)
+static inline int32_t strtos32_or_err(const char* str, const char* errmesg)
 {
     int64_t num = strtos64_or_err(str, errmesg);
     if (num < INT32_MIN || num > INT32_MAX) {
@@ -104,6 +103,9 @@ enum {
 };
 
 static int IOPRIO_CLASS_SHIFT = 13;
+
+static int EX_EXEC_FAILED = 126; // Program located, but not usable
+static int EX_EXEC_ENOENT = 127; // Could not find program to exec
 
 static inline unsigned long IOPRIO_PRIO_MASK()
 {
@@ -176,10 +178,8 @@ static void __attribute__((__noreturn__)) usage(void)
                  " tinyionice [options] -P <pgid>...\n"
                  " tinyionice [options] -u <uid>...\n"
                  " tinyionice [options] <command>\n");
-
     fputs("\n", out);
     fputs("Show or change the I/O-scheduling class and priority of a process.\n", out);
-
     fputs("\nOptions:\n", out);
     fputs(" -c, --class <class>    name or number of scheduling class,\n"
           "                          0: none, 1: realtime, 2: best-effort, 3: idle\n",
@@ -191,19 +191,15 @@ static void __attribute__((__noreturn__)) usage(void)
     fputs(" -P, --pgid <pgrp>...   act on already running processes in these groups\n", out);
     fputs(" -t, --ignore           ignore failures\n", out);
     fputs(" -u, --uid <uid>...     act on already running processes owned by these users\n", out);
-
     fputs("\n", out);
-
     printf("%-24s%s\n", " -h, --help", "display this help");
     printf("%-24s%s\n", " -V, --version", "display version");
-
     exit(EXIT_SUCCESS);
 }
 
 int main(int argc, char** argv)
 {
-    int data = 4, set = 0, c = 0, which = 0, who = 0;
-    int ioclass = IOPRIO_CLASS_BE;
+    int data = 4, set = 0, c = 0, which = 0, who = 0, ioclass = IOPRIO_CLASS_BE;
     const char* invalid_msg = NULL;
     bool tolerant = false;
 
@@ -228,32 +224,36 @@ int main(int argc, char** argv)
             set |= 1;
             break;
         case 'c':
-            if (isdigit(*optarg))
+            if (isdigit(*optarg)) {
                 ioclass = strtos32_or_err(optarg, "invalid class argument");
-            else {
+            } else {
                 ioclass = parse_ioclass(optarg);
-                if (ioclass < 0)
+                if (ioclass < 0) {
                     errx(EXIT_FAILURE, "unknown scheduling class: '%s'", optarg);
+                }
             }
             set |= 2;
             break;
         case 'p':
-            if (who)
+            if (who) {
                 errx(EXIT_FAILURE, "can handle only one of pid, pgid or uid at once");
+            }
             invalid_msg = "invalid PID argument";
             which = strtos32_or_err(optarg, invalid_msg);
             who = IOPRIO_WHO_PROCESS;
             break;
         case 'P':
-            if (who)
+            if (who) {
                 errx(EXIT_FAILURE, "can handle only one of pid, pgid or uid at once");
+            }
             invalid_msg = "invalid PGID argument";
             which = strtos32_or_err(optarg, invalid_msg);
             who = IOPRIO_WHO_PGRP;
             break;
         case 'u':
-            if (who)
+            if (who) {
                 errx(EXIT_FAILURE, "can handle only one of pid, pgid or uid at once");
+            }
             invalid_msg = "invalid UID argument";
             which = strtos32_or_err(optarg, invalid_msg);
             who = IOPRIO_WHO_USER;
@@ -314,8 +314,6 @@ int main(int argc, char** argv)
         // tinyionce [-c CLASS] COMMAND
         ioprio_setid(0, ioclass, data, IOPRIO_WHO_PROCESS, tolerant);
         execvp(argv[optind], &argv[optind]);
-        static int EX_EXEC_FAILED = 126; // Program located, but not usable
-        static int EX_EXEC_ENOENT = 127; // Could not find program to exec
         err(errno == ENOENT ? EX_EXEC_ENOENT : EX_EXEC_FAILED, "failed to execute %s", argv[optind]);
     } else {
         warnx("bad usage");
