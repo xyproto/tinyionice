@@ -1,4 +1,4 @@
-# Tiny I/O nice
+# Tiny I/O Nice
 
 Small fork of `ionice` from [util-linux](https://github.com/karelzak/util-linux).
 
