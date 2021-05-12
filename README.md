@@ -6,8 +6,7 @@ This is a fork of `ionice` from [util-linux](https://github.com/karelzak/util-li
 * The translated output messages are removed.
 * Other than that it's a fully featured drop-in replacement of `ionice`.
 * The resulting executable is 13k when built with GCC 10 on Linux. It can also be built with [`cxx tiny`](https://github.com/xyproto/cxx).
-* The source code in `util-linux` have different licenses in different source files.
-* `util-linux` uses several open source licenses across many different files. This fork is only based on files licensed under GPL2 and is only GPL2 licensed.
+* `util-linux` uses several open source licenses across many different files. This fork is only based on files licensed under GPL2. `tinyionice` is only GPL2 licensed.
 
 ## Build
 
