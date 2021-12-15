@@ -15,7 +15,7 @@ This is a fork of `ionice` from [util-linux](https://github.com/karelzak/util-li
 
     gcc -O2 -fPIC -fstack-protector-strong -D_GNU_SOURCE -s -z norelro main.c -o tinyionice
 
-### With [cxx](https://github.com/xyproto/cxx)
+### With [cxx](https://github.com/xyproto/cxx) and gcc
 
     cxx tiny
 
