@@ -28,24 +28,29 @@ This is a fork of `ionice` from [util-linux](https://github.com/karelzak/util-li
 
 The original source code of `ionice` is either GPL2 licensed:
 
-> Copyright (C) 2004 Jens Axboe <jens@axboe.dk>
-> Released under the terms of the GNU General Public License version 2
+```
+Copyright (C) 2004 Jens Axboe <jens@axboe.dk>
+Released under the terms of the GNU General Public License version 2
+```
 
-Or released under `No copyright is claimed. This code is in the public domain; do with it what you wish`:
+And also released under `No copyright is claimed. This code is in the public domain; do with it what you wish`:
 
-> Copyright (C) 2010 Karel Zak <kzak@redhat.com>
-> Copyright (C) 2010 Davidlohr Bueso <dave@gnu.org>
-> No copyright is claimed.  This code is in the public domain; do with
-> it what you wish.
+```
+Copyright (C) 2010 Karel Zak <kzak@redhat.com>
+Copyright (C) 2010 Davidlohr Bueso <dave@gnu.org>
+No copyright is claimed. This code is in the public domain; do with it what you wish.
+```
 
-I wish to relicense these changes under GPL2.
+I wish to relicense all code under these terms as GPL2.
 
 The changes made in 2021 and beyond are:
 
-> Copyright (C) 2021 Alexander F. Rødseth <xyproto@archlinux.org>
- > Released under the terms of the GNU General Public License version 2
+```
+Copyright (C) 2021 Alexander F. Rødseth <xyproto@archlinux.org>
+Released under the terms of the GNU General Public License version 2
+```
 
-The entire code of `tinyionice` is released under GPL2.
+The entire code of `tinyionice` is now released under GPL2.
 
 The full license text is in the `COPYING` file.
 
