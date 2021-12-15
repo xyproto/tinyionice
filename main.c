@@ -14,7 +14,6 @@ static const char* versionString = "tinyionice 1.0.0";
 
 static inline int flush_standard_stream(FILE* stream)
 {
-    int fd;
     errno = 0;
     if (ferror(stream) != 0 || fflush(stream) != 0) {
         return (errno == EBADF) ? 0 : EOF;
@@ -27,6 +26,7 @@ static inline int flush_standard_stream(FILE* stream)
      * around this issue by calling close on a dup'd file
      * descriptor from the stream.
      */
+    int fd;
     if ((fd = fileno(stream)) < 0 || (fd = dup(fd)) < 0 || close(fd) != 0) {
         return (errno == EBADF) ? 0 : EOF;
     }
