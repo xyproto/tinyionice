@@ -19,12 +19,23 @@ This is a fork of `ionice` from [util-linux](https://github.com/karelzak/util-li
 
     cxx tiny
 
+### With `make`
+
+    make
+
 ## Install
+
+As `root`, with `sudo` or `doas`:
+
+### Manually
 
     sudo install -Dm755 tinyionice /usr/bin/tinyionice
 
+### With `make`
 
-## License:
+    make install
+
+## License
 
 The original source code of `ionice` is either GPL2 licensed:
 
@@ -46,7 +57,7 @@ I wish to relicense all code under these terms as GPL2.
 The changes made in 2021 and beyond are:
 
 ```
-Copyright (C) 2021 Alexander F. Rødseth <xyproto@archlinux.org>
+Copyright (C) 2021-2022 Alexander F. Rødseth <xyproto@archlinux.org>
 Released under the terms of the GNU General Public License version 2
 ```
 
