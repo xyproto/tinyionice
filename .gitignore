@@ -5,3 +5,5 @@ tinyionice
 *.swp
 *~
 *.out
+*.tar.gz
+release/
