@@ -6,7 +6,8 @@
 * The translated output messages are removed.
 * Other than that it's a fully featured drop-in replacement for `ionice`.
 * The resulting executable is only 11k when built with GCC 11 on Linux (and then stripped with `sstrip`).
-* `util-linux` uses several open source licenses across many different files. This fork is only based on files licensed under GPL2. `tinyionice` is only GPL2 licensed.
+* `util-linux` uses several open source licenses across many different files. This fork is only based on files licensed under GPL2.
+* `tinyionice` is only GPL2 licensed.
 
 
 ## Build
