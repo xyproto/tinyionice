@@ -10,7 +10,7 @@
 #include <sys/syscall.h>
 #include <unistd.h>
 
-static const char* versionString = "tinyionice 1.0.0";
+static const char* versionString = "tinyionice 1.0.1";
 
 static inline int flush_standard_stream(FILE* stream)
 {
