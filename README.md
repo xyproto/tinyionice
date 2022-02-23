@@ -1,4 +1,4 @@
-# Tiny I/O Nice
+![tinyionice](img/tinyionice.png)
 
 This is a fork of `ionice` from [util-linux](https://github.com/karelzak/util-linux), in just 324 lines of C.
 
