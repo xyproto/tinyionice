@@ -1,6 +1,6 @@
-![tinyionice](img/tinyionice.png)
+# ![tinyionice](img/tinyionice.png) Tiny I/O Nice
 
-**Tiny I/O Nice** is a fork of `ionice` from [util-linux](https://github.com/karelzak/util-linux), in just 324 lines of C.
+This is a fork of `ionice` from [util-linux](https://github.com/karelzak/util-linux), in just 324 lines of C.
 
 * Support for obsolete systems is removed.
 * The translated output messages are removed.
