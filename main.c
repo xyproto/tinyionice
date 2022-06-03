@@ -10,7 +10,7 @@
 #include <sys/syscall.h>
 #include <unistd.h>
 
-static const char* versionString = "tinyionice 1.0.1";
+static const char* versionString = "tinyionice 1.0.2";
 enum {
     IOPRIO_CLASS_NONE,
     IOPRIO_CLASS_RT,
