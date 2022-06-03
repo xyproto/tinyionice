@@ -11,6 +11,26 @@
 #include <unistd.h>
 
 static const char* versionString = "tinyionice 1.0.1";
+enum {
+    IOPRIO_CLASS_NONE,
+    IOPRIO_CLASS_RT,
+    IOPRIO_CLASS_BE,
+    IOPRIO_CLASS_IDLE,
+};
+enum {
+    IOPRIO_WHO_PROCESS = 1,
+    IOPRIO_WHO_PGRP,
+    IOPRIO_WHO_USER,
+};
+static int IOPRIO_CLASS_SHIFT = 13;
+static int EX_EXEC_FAILED = 126; // Program located, but not usable
+static int EX_EXEC_ENOENT = 127; // Could not find program to exec
+static const char* to_prio[] = {
+    [IOPRIO_CLASS_NONE] = "none",
+    [IOPRIO_CLASS_RT] = "realtime",
+    [IOPRIO_CLASS_BE] = "best-effort",
+    [IOPRIO_CLASS_IDLE] = "idle"
+};
 
 static inline int flush_standard_stream(FILE* stream)
 {
@@ -19,12 +39,11 @@ static inline int flush_standard_stream(FILE* stream)
         return (errno == EBADF) ? 0 : EOF;
     }
     /*
-     * Calling fflush is not sufficient on some filesystems
-     * like e.g. NFS, which may defer the actual flush until
-     * close. Calling fsync would help solve this, but would
-     * probably result in a performance hit. Thus, we work
-     * around this issue by calling close on a dup'd file
-     * descriptor from the stream.
+     * Calling fflush is not sufficient on some filesystems like e.g. NFS,
+     * which may defer the actual flush until close. Calling fsync would help
+     * solve this, but would probably result in a performance hit. Thus, we
+     * work around this issue by calling close on a dup'd file descriptor from
+     * the stream.
      */
     int fd;
     if ((fd = fileno(stream)) < 0 || (fd = dup(fd)) < 0 || close(fd) != 0) {
@@ -42,16 +61,16 @@ static inline void close_stdout(void)
         } else {
             warnx("write error");
         }
-        _exit(EXIT_FAILURE);
-    } else if (flush_standard_stream(stderr) != 0) {
-        _exit(EXIT_FAILURE);
+    } else if (flush_standard_stream(stderr) == 0) {
+        return;
     }
+    _exit(EXIT_FAILURE);
 }
 
 static inline int64_t strtos64_or_err(const char* str, const char* errmesg)
 {
-    int64_t num;
     char* end = NULL;
+    int64_t num;
     errno = 0;
     if (str == NULL || *str == '\0') {
         if (errno == ERANGE) {
@@ -79,34 +98,6 @@ static inline int32_t strtos32_or_err(const char* str, const char* errmesg)
     return (int32_t)num;
 }
 
-static inline int ioprio_set(int which, int who, int ioprio)
-{
-    return (int)syscall(SYS_ioprio_set, which, who, ioprio);
-}
-
-static inline int ioprio_get(int which, int who)
-{
-    return (int)syscall(SYS_ioprio_get, which, who);
-}
-
-enum {
-    IOPRIO_CLASS_NONE,
-    IOPRIO_CLASS_RT,
-    IOPRIO_CLASS_BE,
-    IOPRIO_CLASS_IDLE,
-};
-
-enum {
-    IOPRIO_WHO_PROCESS = 1,
-    IOPRIO_WHO_PGRP,
-    IOPRIO_WHO_USER,
-};
-
-static int IOPRIO_CLASS_SHIFT = 13;
-
-static int EX_EXEC_FAILED = 126; // Program located, but not usable
-static int EX_EXEC_ENOENT = 127; // Could not find program to exec
-
 static inline unsigned long IOPRIO_PRIO_MASK()
 {
     return (1UL << IOPRIO_CLASS_SHIFT) - 1;
@@ -127,13 +118,6 @@ static inline unsigned long IOPRIO_PRIO_VALUE(unsigned long class, unsigned long
     return ((class << IOPRIO_CLASS_SHIFT) | data);
 }
 
-static const char* to_prio[] = {
-    [IOPRIO_CLASS_NONE] = "none",
-    [IOPRIO_CLASS_RT] = "realtime",
-    [IOPRIO_CLASS_BE] = "best-effort",
-    [IOPRIO_CLASS_IDLE] = "idle"
-};
-
 static int parse_ioclass(const char* str)
 {
     for (int i = 0; i < 4; i++) {
@@ -146,7 +130,7 @@ static int parse_ioclass(const char* str)
 
 static void ioprio_print(int pid, int who)
 {
-    int ioprio = ioprio_get(who, pid);
+    int ioprio = syscall(SYS_ioprio_get, pid, who);
     if (ioprio == -1) {
         err(EXIT_FAILURE, "ioprio_get failed");
     }
@@ -164,7 +148,7 @@ static void ioprio_print(int pid, int who)
 
 static void ioprio_setid(int which, int ioclass, int data, int who, bool tolerant)
 {
-    int rc = ioprio_set(who, which, IOPRIO_PRIO_VALUE(ioclass, data));
+    int rc = syscall(SYS_ioprio_set, which, who, IOPRIO_PRIO_VALUE(ioclass, data));
     if (rc == -1 && !tolerant) {
         err(EXIT_FAILURE, "ioprio_set failed");
     }
@@ -174,19 +158,14 @@ static void __attribute__((__noreturn__)) usage(void)
 {
     FILE* out = stdout;
     fputs("\nUsage:\n", out);
-    fprintf(out, " tinyionice [options] -p <pid>...\n"
-                 " tinyionice [options] -P <pgid>...\n"
-                 " tinyionice [options] -u <uid>...\n"
-                 " tinyionice [options] <command>\n");
-    fputs("\n", out);
+    fprintf(out, " tinyionice [options] -p <pid>...\n tinyionice [options] -P <pgid>...\n"
+                 " tinyionice [options] -u <uid>...\n tinyionice [options] <command>\n\n");
     fputs("Show or change the I/O-scheduling class and priority of a process.\n", out);
     fputs("\nOptions:\n", out);
     fputs(" -c, --class <class>    name or number of scheduling class,\n"
-          "                          0: none, 1: realtime, 2: best-effort, 3: idle\n",
-        out);
+          "                          0: none, 1: realtime, 2: best-effort, 3: idle\n", out);
     fputs(" -n, --classdata <num>  priority (0..7) in the specified scheduling class,\n"
-          "                          only for the realtime and best-effort classes\n",
-        out);
+          "                          only for the realtime and best-effort classes\n", out);
     fputs(" -p, --pid <pid>...     act on these already running processes\n", out);
     fputs(" -P, --pgid <pgrp>...   act on already running processes in these groups\n", out);
     fputs(" -t, --ignore           ignore failures\n", out);
@@ -199,10 +178,9 @@ static void __attribute__((__noreturn__)) usage(void)
 
 int main(int argc, char** argv)
 {
-    int data = 4, set = 0, c = 0, which = 0, who = 0, ioclass = IOPRIO_CLASS_BE;
-    const char* invalid_msg = NULL;
     bool tolerant = false;
-
+    const char* invalid_msg = NULL;
+    int data = 4, set = 0, c = 0, which = 0, who = 0, ioclass = IOPRIO_CLASS_BE;
     static const struct option longopts[] = {
         { "classdata", required_argument, NULL, 'n' },
         { "class", required_argument, NULL, 'c' },
@@ -214,9 +192,7 @@ int main(int argc, char** argv)
         { "version", no_argument, NULL, 'V' },
         { NULL, 0, NULL, 0 }
     };
-
     atexit(close_stdout);
-
     while ((c = getopt_long(argc, argv, "+n:c:p:P:u:tVh", longopts, NULL)) != EOF)
         switch (c) {
         case 'n':
