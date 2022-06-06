@@ -38,14 +38,14 @@ As `root`, with `sudo` or `doas`:
 
 ## License
 
-The original source code of `ionice` is either GPL2 licensed:
+The original source code of `ionice` is dual-licenced under either GPL2:
 
 ```
 Copyright (C) 2004 Jens Axboe <jens@axboe.dk>
 Released under the terms of the GNU General Public License version 2
 ```
 
-And also released under `No copyright is claimed. This code is in the public domain; do with it what you wish`:
+Or under `No copyright is claimed. This code is in the public domain; do with it what you wish`:
 
 ```
 Copyright (C) 2010 Karel Zak <kzak@redhat.com>
