@@ -1,6 +1,8 @@
 # ![tinyionice](img/tinyionice.png) Tiny I/O Nice
 
-This is a fork of `ionice` from [util-linux](https://github.com/karelzak/util-linux) - a drop-in replacement for `ionice` in just 300 lines of C and under a single open source license.
+This is a fork of `ionice` from [util-linux](https://github.com/karelzak/util-linux)
+
+It is a drop-in replacement for `ionice` in just 300 lines of C and under a single open source license.
 
 [![Packaging status](https://repology.org/badge/vertical-allrepos/tinyionice.svg)](https://repology.org/project/tinyionice/versions)
 
