@@ -22,7 +22,7 @@ It is a drop-in replacement for `ionice` in just 300 lines of C and under a sing
 
     make
 
-### With [`cxx](https://github.com/xyproto/cxx)
+### With [`cxx`](https://github.com/xyproto/cxx)
 
     cxx tiny
 
