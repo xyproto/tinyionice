@@ -132,7 +132,7 @@ static int parse_ioclass(const char* str)
 
 static void ioprio_print(const int pid, const int who)
 {
-    const int ioprio = syscall(SYS_ioprio_get, pid, who);
+    const int ioprio = syscall(SYS_ioprio_get, who, pid);
     if (ioprio == -1) {
         err(EXIT_FAILURE, "ioprio_get failed");
     }
@@ -150,7 +150,7 @@ static void ioprio_print(const int pid, const int who)
 
 static void ioprio_setid(int which, int ioclass, int data, int who, bool tolerant)
 {
-    const int rc = syscall(SYS_ioprio_set, which, who, IOPRIO_PRIO_VALUE(ioclass, data));
+    const int rc = syscall(SYS_ioprio_set, who, which, IOPRIO_PRIO_VALUE(ioclass, data));
     if (rc == -1 && !tolerant) {
         err(EXIT_FAILURE, "ioprio_set failed");
     }
