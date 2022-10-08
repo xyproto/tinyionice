@@ -10,7 +10,8 @@
 #include <sys/syscall.h>
 #include <unistd.h>
 
-static const char* versionString = "tinyionice 1.0.2";
+static const char* version_string = "tinyionice 1.0.3";
+
 enum {
     IOPRIO_CLASS_NONE,
     IOPRIO_CLASS_RT,
@@ -22,6 +23,7 @@ enum {
     IOPRIO_WHO_PGRP,
     IOPRIO_WHO_USER,
 };
+
 static int IOPRIO_CLASS_SHIFT = 13;
 static int EX_EXEC_FAILED = 126; // Program located, but not usable
 static int EX_EXEC_ENOENT = 127; // Could not find program to exec
@@ -45,8 +47,8 @@ static inline int flush_standard_stream(FILE* stream)
      * work around this issue by calling close on a dup'd file descriptor from
      * the stream.
      */
-    int fd;
-    if ((fd = fileno(stream)) < 0 || (fd = dup(fd)) < 0 || close(fd) != 0) {
+    int fd = fileno(stream);
+    if (fd < 0 || (fd = dup(fd)) < 0 || close(fd) != 0) {
         return (errno == EBADF) ? 0 : EOF;
     }
     return 0;
@@ -128,13 +130,13 @@ static int parse_ioclass(const char* str)
     return -1;
 }
 
-static void ioprio_print(int pid, int who)
+static void ioprio_print(const int pid, const int who)
 {
-    int ioprio = syscall(SYS_ioprio_get, pid, who);
+    const int ioprio = syscall(SYS_ioprio_get, pid, who);
     if (ioprio == -1) {
         err(EXIT_FAILURE, "ioprio_get failed");
     }
-    int ioclass = IOPRIO_PRIO_CLASS(ioprio);
+    const int ioclass = IOPRIO_PRIO_CLASS(ioprio);
     const char* name = "unknown";
     if (ioclass >= 0 && (size_t)ioclass < 4) {
         name = to_prio[ioclass];
@@ -148,7 +150,7 @@ static void ioprio_print(int pid, int who)
 
 static void ioprio_setid(int which, int ioclass, int data, int who, bool tolerant)
 {
-    int rc = syscall(SYS_ioprio_set, which, who, IOPRIO_PRIO_VALUE(ioclass, data));
+    const int rc = syscall(SYS_ioprio_set, which, who, IOPRIO_PRIO_VALUE(ioclass, data));
     if (rc == -1 && !tolerant) {
         err(EXIT_FAILURE, "ioprio_set failed");
     }
@@ -156,23 +158,21 @@ static void ioprio_setid(int which, int ioclass, int data, int who, bool toleran
 
 static void __attribute__((__noreturn__)) usage(void)
 {
-    FILE* out = stdout;
-    fputs("\nUsage:\n", out);
-    fprintf(out, " tinyionice [options] -p <pid>...\n tinyionice [options] -P <pgid>...\n"
-                 " tinyionice [options] -u <uid>...\n tinyionice [options] <command>\n\n");
-    fputs("Show or change the I/O-scheduling class and priority of a process.\n", out);
-    fputs("\nOptions:\n", out);
-    fputs(" -c, --class <class>    name or number of scheduling class,\n"
-          "                          0: none, 1: realtime, 2: best-effort, 3: idle\n", out);
-    fputs(" -n, --classdata <num>  priority (0..7) in the specified scheduling class,\n"
-          "                          only for the realtime and best-effort classes\n", out);
-    fputs(" -p, --pid <pid>...     act on these already running processes\n", out);
-    fputs(" -P, --pgid <pgrp>...   act on already running processes in these groups\n", out);
-    fputs(" -t, --ignore           ignore failures\n", out);
-    fputs(" -u, --uid <uid>...     act on already running processes owned by these users\n", out);
-    fputs("\n", out);
-    printf("%-24s%s\n", " -h, --help", "display this help");
-    printf("%-24s%s\n", " -V, --version", "display version");
+    fputs("\nUsage:\n"
+      " tinyionice [options] -p <pid>...\n tinyionice [options] -P <pgid>...\n"
+      " tinyionice [options] -u <uid>...\n tinyionice [options] <command>\n\n"
+      "Show or change the I/O-scheduling class and priority of a process.\n\n"
+      "Options:\n"
+      " -c, --class <class>    name or number of scheduling class,\n"
+      "                          0: none, 1: realtime, 2: best-effort, 3: idle\n"
+      " -n, --classdata <num>  priority (0..7) in the specified scheduling class,\n"
+      "                          only for the realtime and best-effort classes\n"
+      " -p, --pid <pid>...     act on these already running processes\n"
+      " -P, --pgid <pgrp>...   act on already running processes in these groups\n"
+      " -t, --ignore           ignore failures\n"
+      " -u, --uid <uid>...     act on already running processes owned by these users\n\n"
+      " -h, --help             display this help\n"
+      " -V, --version          display version\n", stdout);
     exit(EXIT_SUCCESS);
 }
 
@@ -238,7 +238,7 @@ int main(int argc, char** argv)
             tolerant = 1;
             break;
         case 'V':
-            printf("%s\n", versionString);
+            printf("%s\n", version_string);
             exit(EXIT_SUCCESS);
         case 'h':
             usage();
