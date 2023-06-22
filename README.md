@@ -1,4 +1,6 @@
-# ![tinyionice](img/tinyionice.png) Tiny I/O Nice
+<img alt="tinyionice logo" src="img/tinyionice.png" align="right">
+
+# Tiny I/O Nice
 
 This is a fork of `ionice` from [util-linux](https://github.com/karelzak/util-linux)
 
